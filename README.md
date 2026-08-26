@@ -1,0 +1,44 @@
+# corridor-cookbook
+
+Recipes for real knowledge work with Claude. By Corridor Context.
+
+The technical ability already exists. The gap is getting agentic workflows into the hands of the people who do the actual work: the analyst assembling a monthly report, the asset manager chasing comps, the operator with five Excel files and a vision for what they want to do. Corridor Context helps companies become AI-native, with more ambition and more human agency, by building products and deploying services around one belief: as models get better, the durable edge is the context you capture and the way you put agents to work. Our job is to diffuse very powerful technology into the real world, in partnership with the businesses that run on it.
+
+This cookbook is the free layer of that work. Each skill is a recipe: a repeatable process you invoke by name, distilled from real deployment sessions with real teams. No code required. Everything here works in Claude Code and Claude Cowork, because both read the same folder.
+
+## Install
+
+```
+/plugin marketplace add CorridorIQ/corridor-cookbook
+/plugin install corridor-cookbook
+```
+
+## Skills
+
+| Skill | What it does |
+|---|---|
+| `setup-workspace` | Turns a folder into a working environment: CLAUDE.md, README, index, and an interview so every future session starts already knowing the job. |
+| `make-a-plan` | Interviews you until a loose idea becomes a plan you can commit to, then writes it to `plans/`. |
+| `fresh-start` | Wraps the session into a short handoff so you can clear context or switch between Cowork and Code without losing anything. |
+| `model-guide` | Tells you which model fits the task and how to delegate to agents without burning your usage limits. Default answer: Sonnet. |
+
+## Agents
+
+Two agents ship with the plugin, both pinned to Sonnet so delegated work always lands on the right model:
+
+- **researcher** reads files and sources and returns a tight synthesis. It never edits anything.
+- **indexer** catalogs what lives where in your folder and keeps `index.md` current.
+
+## The learnings loop
+
+Every workspace this cookbook sets up includes a `learnings.md`. When your agent notices you asking for the same thing repeatedly or hitting the same friction twice, it writes the pattern down. Those notes are the raw material for your next skill. The work teaches the cookbook.
+
+## Try it
+
+`examples/monthly-report-assembly/` is a hands-on exercise with fictional data: point Claude at it and ask for the August report. The interesting findings are in the numbers.
+
+## Credits
+
+`make-a-plan` is directly inspired by Matt Pocock's [grilling skill](https://github.com/mattpocock/skills). Thanks, Matt.
+
+MIT license. Built by [Corridor Context](https://corridorcontext.com).

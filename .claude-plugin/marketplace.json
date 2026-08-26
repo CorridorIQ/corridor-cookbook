@@ -1,0 +1,30 @@
+{
+  "name": "corridor-context",
+  "owner": {
+    "name": "Corridor Context"
+  },
+  "metadata": {
+    "description": "Knowledge-work skills for Claude Code and Cowork, published by Corridor Context.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "corridor-cookbook",
+      "source": "./",
+      "description": "Knowledge-work recipes for Claude: set up a working environment, turn loose ideas into committed plans, and keep your context clean.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Corridor Context"
+      },
+      "license": "MIT",
+      "category": "productivity",
+      "keywords": [
+        "knowledge-work",
+        "workspace-setup",
+        "planning",
+        "context-management",
+        "non-technical"
+      ]
+    }
+  ]
+}

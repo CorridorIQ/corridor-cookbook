@@ -1,0 +1,16 @@
+{
+  "name": "corridor-cookbook",
+  "version": "0.1.0",
+  "description": "Knowledge-work recipes for Claude: set up a working environment, turn loose ideas into committed plans, and keep your context clean.",
+  "author": {
+    "name": "Corridor Context"
+  },
+  "license": "MIT",
+  "keywords": [
+    "knowledge-work",
+    "workspace-setup",
+    "planning",
+    "context-management",
+    "non-technical"
+  ]
+}
