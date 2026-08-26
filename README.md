@@ -1,8 +1,10 @@
 # corridor-cookbook
 
+![Documents flowing through a gate and coming out as organized streams](assets/cover.jpg)
+
 Recipes for real knowledge work with Claude. By Corridor Context.
 
-The technical ability already exists. The gap is getting agentic workflows into the hands of the people who do the actual work: the analyst assembling a monthly report, the asset manager chasing comps, the operator with five Excel files and a vision for what they want to do. Corridor Context helps companies become AI-native, with more ambition and more human agency, by building products and deploying services around one belief: as models get better, the durable edge is the context you capture and the way you put agents to work. Our job is to diffuse very powerful technology into the real world, in partnership with the businesses that run on it.
+The models are already good enough. What's missing is getting them into the hands of people doing real work: the analyst who owns the monthly report, the asset manager chasing comps, anyone staring down five Excel files and a deadline. That gap is our whole business. Corridor Context helps companies become AI-native. We bet on one thing: models keep getting better, so your edge is the context you capture and how you put agents to work. And we do this work inside real businesses, next to the people who run them, not from a distance.
 
 This cookbook is the free layer of that work. Each skill is a recipe: a repeatable process you invoke by name, distilled from real deployment sessions with real teams. No code required. Everything here works in Claude Code and Claude Cowork, because both read the same folder.
 
