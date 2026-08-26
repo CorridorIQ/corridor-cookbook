@@ -12,5 +12,7 @@
     "planning",
     "context-management",
     "non-technical"
-  ]
+  ],
+  "homepage": "https://github.com/CorridorIQ/corridor-cookbook",
+  "repository": "https://github.com/CorridorIQ/corridor-cookbook"
 }
