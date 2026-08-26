@@ -37,6 +37,14 @@ Every workspace this cookbook sets up includes a `learnings.md`. When your agent
 
 `examples/monthly-report-assembly/` is a hands-on exercise with fictional data: point Claude at it and ask for the August report. The interesting findings are in the numbers.
 
+## Go deeper
+
+The official Claude Code docs are worth your time, in this order:
+
+1. [Common workflows](https://code.claude.com/docs/en/common-workflows). The best starting point; it even covers working in notes and non-code folders, which is exactly what this cookbook does.
+2. [Best practices](https://code.claude.com/docs/en/best-practices). Why short CLAUDE.md files win, when to delegate to agents, and how to have Claude show evidence instead of asserting success.
+3. [Prompt library](https://code.claude.com/docs/en/prompt-library). Ready-made prompts; the interview-to-spec and match-my-voice patterns transfer straight to knowledge work.
+
 ## Credits
 
 `make-a-plan` is directly inspired by Matt Pocock's [grilling skill](https://github.com/mattpocock/skills). Thanks, Matt.

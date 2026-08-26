@@ -1,6 +1,8 @@
 # {{PROJECT_NAME}}
 
 > Read this first. It tells any AI agent, in any session, how to work in this folder.
+> Keep this file short. For each line, ask: would removing it cause mistakes? If not, cut it.
+> New to working this way? The official guide: https://code.claude.com/docs/en/common-workflows
 
 ## What this folder is
 
