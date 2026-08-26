@@ -27,3 +27,7 @@ When the user asks for the same thing repeatedly, hits the same friction twice, 
 ## About the user
 
 {{From the setup interview: role, what they care about, how they like to receive work.}}
+
+## Where we left off
+
+{{Fresh workspace, nothing in progress yet. The fresh-start skill replaces this section at the end of each session: current state, exact next step, path to the latest handoff in plans/handoffs/.}}
