@@ -1,4 +1,4 @@
-# corridor-cookbook
+# Corridor Cookbook
 
 ![Documents flowing through a gate and coming out as organized streams](assets/cover.jpg)
 
