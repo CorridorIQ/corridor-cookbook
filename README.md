@@ -17,6 +17,10 @@ This cookbook is the "SOP" layer of that work. Each skill is a recipe: a repeata
 /plugin install corridor-cookbook
 ```
 
+## Guides
+
+- [From messy folder to working workspace](guides/from-messy-folder-to-working-workspace.md). The full walkthrough: point Cowork at a folder of mixed files, run `setup-workspace`, understand CLAUDE.md and the index, see that an agent is just a text file, and finish with a scheduled monthly process. Start here if you are new.
+
 ## Skills
 
 | Skill | What it does |
