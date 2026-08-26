@@ -9,7 +9,7 @@ Your context window works like a person's working memory: it holds a lot, but pa
 
 1. **Write the handoff**, 15 lines maximum, in a fenced code block the user can copy: what we were working on, what got done, decisions made, open items, the exact next step, and the key file paths.
 2. **Save the same text** to `plans/handoffs/YYYY-MM-DD_handoff.md`, creating the folder if needed.
-3. **Mark where work left off in the workspace brain.** Replace the "Where we left off" section at the bottom of `CLAUDE.md` (add it if missing) with 2-3 lines: current state, the exact next step, and the path to today's handoff file. Replace, never append; `CLAUDE.md` carries only the latest state. If a personal brain or memory tool is connected to this session, log the same leaving-off note there too.
+3. **Mark where work left off in the user's brain.** If a personal brain or memory tool is connected to this session (for example Corridor Context), log 2-3 lines: current state, the exact next step, and the path to today's handoff file. If nothing is connected, skip this; the saved handoff file is the durable copy.
 4. **Tell the user what to do**: copy the block, run `/clear` in Claude Code or open a fresh chat in Cowork, paste it, and the work continues where it left off.
 
-Done when the handoff is on screen and saved, `CLAUDE.md` points at it, and someone brand new could pick up the work from the block alone, or from `CLAUDE.md` if the paste is forgotten.
+Done when the handoff is on screen and saved, the brain note is logged when a brain is connected, and someone brand new could pick up the work from the block alone.
