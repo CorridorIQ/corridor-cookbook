@@ -25,9 +25,9 @@ This cookbook is the "SOP" layer of that work. Each skill is a recipe: a repeata
 | `make-a-plan` | Interviews you until a loose idea becomes a plan you can commit to, then writes it to `plans/`. |
 | `fresh-start` | Wraps the session into a short handoff so you can clear context or switch between Cowork and Code without losing anything. |
 | `model-guide` | Tells you which model fits the task and how to delegate to agents without burning your usage limits. Default answer: Sonnet. |
-| `meeting-prep` | Prepares you for a specific meeting from your brain, the last meeting, and the email thread. Asks what kind of prep you want before writing it. |
-| `learn-my-voice` | Reads emails you actually sent and saves a style profile of how you write into your brain. Run it once. |
-| `write-in-my-voice` | Drafts and replies to email in that voice, checking every draft against the profile before showing it. |
+| `meeting-prep` | Preps you for one meeting from your brain, the last meeting, and the email thread. Asks what kind of prep you want before writing it. |
+| `learn-my-voice` | Reads emails you actually sent and saves a style profile of how you write into your brain. Run it once, then re-run when drafts stop sounding right. |
+| `write-in-my-voice` | Drafts and replies to email in that voice, checking every draft against the profile before showing it. Never sends without your go. |
 
 ## Agents
 
