@@ -18,7 +18,7 @@ Status: proposed.
 
 ---
 
-## 2026-09-18: build (monthly report assembly)
+## 2026-09-18: run-plan (monthly report assembly)
 
 **Change.** Before writing the report, read last month's Outlook and check whether each flagged item materialized. In the callouts, name any property whose delinquency doubles month over month or whose occupancy drops more than 3 points. Order the callouts by size of change, worst news first.
 

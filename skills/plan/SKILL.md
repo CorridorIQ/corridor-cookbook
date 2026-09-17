@@ -37,12 +37,12 @@ Five sections, in order, plain English a non-technical person reads in two minut
 
 1. **Goal** in one paragraph. What this produces and why it matters.
 2. **Decisions made** the calls already settled in start, so nobody relitigates them.
-3. **Steps in order** the work, numbered. Enough that build knows what to run, no more.
+3. **Steps in order** the work, numbered. Enough that run-plan knows what to run, no more.
 4. **What done looks like** the finish line, in terms the user can check for themselves.
 5. **Open questions** anything still unsettled. If none, say none.
 
 ## Then stop
 
-Show the plan and stop. Leave the work in the plan for build to run.
+Show the plan and stop. Leave the work in the plan for run-plan to run.
 
-Status stays `draft` until the user says approved. When they do, change `status` to `approved`, and build takes it from there. Until then the plan is a proposal, not a green light.
+Status stays `draft` until the user says approved. When they do, change `status` to `approved`, and run-plan takes it from there. Until then the plan is a proposal, not a green light.

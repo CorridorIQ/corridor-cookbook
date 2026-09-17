@@ -1,9 +1,9 @@
 ---
-name: build
-description: Run an approved plan into finished outputs, routing each step to the right agents and model. Use when the user says "build this", "run the plan", "make it", or points at an approved plan in plans/ and wants the work done.
+name: run-plan
+description: Run an approved plan into finished outputs, routing each step to the right agents and model. Use when the user says "run the plan", "run it", "do the plan", "make it", or points at an approved plan in plans/ and wants the work done.
 ---
 
-# build
+# run-plan
 
 Read an approved plan and produce the outputs it describes. You set up the work and pull the result together. You get step one and step ten, not the nine in between; the agents do the middle.
 

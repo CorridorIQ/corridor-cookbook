@@ -25,6 +25,3 @@ dist/
 build/
 .cache/
 *.log
-
-# skills/build is a skill, not a build artifact
-!skills/build/

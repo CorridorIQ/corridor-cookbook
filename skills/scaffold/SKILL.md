@@ -49,7 +49,7 @@ monthly report/
   plans/             <- specs and handoffs
   versions/          <- iterations of the model
 
-flow:  inputs/ + reference/  ->  plan  ->  build  ->  outputs/
+flow:  inputs/ + reference/  ->  plan  ->  run-plan  ->  outputs/
 ```
 
 ## Common mistakes

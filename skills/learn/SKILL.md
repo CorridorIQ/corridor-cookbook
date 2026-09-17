@@ -1,6 +1,6 @@
 ---
 name: learn
-description: Name the one rule that would change the next run, with the evidence for it. Runs at the end of every build, and when the user says "what did we learn", "remember that", or corrects your output. Run it at the close of each build without being asked; a workflow that never records what it learned keeps repeating the same misses.
+description: Name the one rule that would change the next run, with the evidence for it. Runs at the end of every run-plan, and when the user says "what did we learn", "remember that", or corrects your output. Run it at the close of each build without being asked; a workflow that never records what it learned keeps repeating the same misses.
 ---
 
 # learn
@@ -11,7 +11,7 @@ Ask yourself one question: what rule would change the next run, and what is the 
 
 ## When to run
 
-At the end of build, every time. Also when the user says "what did we learn", "remember that", or corrects your output. A correction is the highest-signal moment you get, so treat every edit the user makes as a question: what rule sits behind this change?
+At the end of run-plan, every time. Also when the user says "what did we learn", "remember that", or corrects your output. A correction is the highest-signal moment you get, so treat every edit the user makes as a question: what rule sits behind this change?
 
 ## The two sections in learnings.md
 
