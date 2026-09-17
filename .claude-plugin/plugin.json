@@ -1,6 +1,6 @@
 {
   "name": "corridor-cookbook",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "One chain of knowledge-work skills for Claude: start, scaffold, plan, build, learn, improve, and make-a-skill, so a non-technical person goes from a vague idea to a finished output that improves the next run.",
   "author": {
     "name": "Corridor Context"
