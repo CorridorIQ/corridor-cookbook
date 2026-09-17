@@ -1,7 +1,7 @@
 {
   "name": "corridor-cookbook",
-  "version": "0.1.0",
-  "description": "Knowledge-work recipes for Claude: set up a working environment, turn loose ideas into committed plans, and keep your context clean.",
+  "version": "0.2.0",
+  "description": "One chain of knowledge-work skills for Claude: start, scaffold, plan, build, learn, improve, and make-a-skill, so a non-technical person goes from a vague idea to a finished output that improves the next run.",
   "author": {
     "name": "Corridor Context"
   },

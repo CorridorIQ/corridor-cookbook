@@ -1,0 +1,13 @@
+date,channel,vendor,campaign,amount,status,delivered,flight_end
+2026-08-03,Paid Search,Google Ads,Always-On Brand,8400,Paid,Yes,2026-08-31
+2026-08-05,Paid Social,LinkedIn,Q3 Demand Gen,6200,Paid,Yes,2026-08-31
+2026-08-06,Paid Social,Meta,Retargeting,3100,Paid,Yes,2026-08-31
+2026-08-10,Content,Brightpost Studio,Case Study Series,5000,Paid,No,2026-10-15
+2026-08-12,Events,Summit Booth Co,Fall Roadshow Deposit,12000,Paid,No,2026-11-04
+2026-08-14,Email,Iterable,Platform Seat,2200,Paid,Yes,2026-08-31
+2026-08-17,Paid Search,Google Ads,Competitor Terms,4300,Paid,Yes,2026-08-31
+2026-08-19,Content,Freelance - J. Okafor,Blog Backlog,1800,Paid,Yes,2026-08-25
+2026-08-20,Paid Social,LinkedIn,Thought Leadership,2900,Paid,Yes,2026-08-31
+2026-08-24,Events,Print Vendor,Roadshow Collateral,3400,Paid,No,2026-11-04
+2026-08-26,Content,Brightpost Studio,Video Explainer,4500,Paid,No,
+2026-08-28,Paid Search,Bing Ads,Always-On Brand,1600,Paid,Yes,2026-08-31

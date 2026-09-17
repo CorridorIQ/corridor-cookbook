@@ -17,28 +17,45 @@ This cookbook is the "SOP" layer of that work. Each skill is a recipe: a repeata
 /plugin install corridor-cookbook
 ```
 
-## Skills
+## The chain
+
+Seven skills that run in order, from a vague idea to a finished output that improves the next run. Start with `start` and follow where it leads, or call any one on its own.
 
 | Skill | What it does |
 |---|---|
-| `setup-workspace` | Turns a folder into a working environment: CLAUDE.md, README, index, and an interview so every future session starts already knowing the job. |
-| `make-a-plan` | Interviews you until a loose idea becomes a plan you can commit to, then writes it to `plans/`. |
+| `start` | Brainstorms the idea, then grills the shape of the work until the job fits in one paragraph. Writes nothing; hands the paragraph to scaffold. |
+| `scaffold` | Turns a folder into a working environment: CLAUDE.md, README, index, and folders for plans, inputs, outputs, and reference. Captures a project record in your brain and draws the folder tree. |
+| `plan` | Turns the start answers into a one-page plan in `plans/`, plain English, six fields of front matter. Stops for your approval before anything runs. |
+| `build` | Runs the approved plan. Independent steps go to Sonnet agents in parallel, harder ones to Opus. Outputs land in `outputs/` with the date. Ends by running learn. |
+| `learn` | Writes a rule only when it can name one that changes the next run, and the evidence for it. Promotes on a second sighting, and mirrors promoted rules to your brain. |
+| `improve` | Reads the learnings, groups them by the skill they touch, and writes one proposal per skill into an `improvements.md` inbox. Never edits a skill itself. |
+| `make-a-skill` | Helps you find which parts of your own work deserve a skill, then shapes that skill around your workflow and tests it on the way you would actually ask for it. |
+
+## Also in the box
+
+Five standalone skills that do not change:
+
+| Skill | What it does |
+|---|---|
 | `fresh-start` | Wraps the session into a short handoff so you can clear context or switch between Cowork and Code without losing anything. |
 | `model-guide` | Tells you which model fits the task and how to delegate to agents without burning your usage limits. Default answer: Sonnet. |
 | `meeting-prep` | Preps you for one meeting from your brain, the last meeting, and the email thread. Asks what kind of prep you want before writing it. |
 | `learn-my-voice` | Reads emails you actually sent and saves a style profile of how you write into your brain. Run it once, then re-run when drafts stop sounding right. |
 | `write-in-my-voice` | Drafts and replies to email in that voice, checking every draft against the profile before showing it. Never sends without your go. |
 
+`setup-workspace` and `make-a-plan` are retired. They are replaced by `scaffold` and `plan`, and stay one release as two-line pointers so anyone on v0.1 is not stranded.
+
 ## Agents
 
-Two agents ship with the plugin, both pinned to Sonnet so delegated work always lands on the right model:
+Three agents ship with the plugin, all pinned to Sonnet so delegated work always lands on the right model:
 
 - **researcher** reads files and sources and returns a tight synthesis. It never edits anything.
+- **designer** drafts and shapes a build step's output in the real format it needs to land in.
 - **indexer** catalogs what lives where in your folder and keeps `index.md` current.
 
 ## The learnings loop
 
-Every workspace this cookbook sets up includes a `learnings.md`. When your agent notices you asking for the same thing repeatedly or hitting the same friction twice, it writes the pattern down. Those notes are the raw material for your next skill. The work teaches the cookbook.
+Every workspace this cookbook sets up includes a `learnings.md`. The `learn` skill writes a rule there only when it can name one that changes the next run. The `improve` skill turns those rules into proposals for your skills. Those notes are the raw material for your next skill. The work teaches the cookbook.
 
 ## Try it
 
@@ -54,6 +71,6 @@ The official Claude Code docs are worth your time, in this order:
 
 ## Credits
 
-`make-a-plan` is directly inspired by Matt Pocock's [grilling skill](https://github.com/mattpocock/skills). Thanks, Matt.
+The grilling in `start` is directly inspired by Matt Pocock's [grilling skill](https://github.com/mattpocock/skills). Thanks, Matt.
 
 MIT license. Built by [Corridor Context](https://corridorcontext.com).
