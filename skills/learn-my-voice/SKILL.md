@@ -9,7 +9,7 @@ Run this once, then again whenever drafts stop sounding right. It writes one fil
 
 Every rule in that file comes from a line the user actually wrote. You are describing the voice they already have, not choosing one for them.
 
-1. **Read who they are.** Call `cold_start_context`, then `personal_list` and `personal_search` for their main people and projects. Their voice moves by audience, so you need to know which emails go to a client, a manager, or a teammate.
+1. **Read who they are.** Call `cold_start_context`, then `personal_list` and `personal_search` for their main people and projects. Their voice moves by audience, so you need to know which emails go to a client, a manager, or a teammate. If no personal brain connector is present, say so in one line and skip to gathering samples from mail alone.
 
 2. **Gather samples.** From the connected mail account, pull 10 to 15 recent messages the user wrote themselves, sent items only, spread across audiences. Drop forwards, one-line scheduling replies, and pasted-in text. With no mail connected, ask them to paste 5 emails they are happy with and say who each went to. Ask for real emails, not a description of their style; five samples beat any description.
 

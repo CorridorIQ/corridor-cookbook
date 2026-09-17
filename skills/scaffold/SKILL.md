@@ -23,7 +23,7 @@ Take the one-paragraph job from start. If start did not run, ask for the job in 
 
    Move existing files into place: source data to `inputs/`, the format target to `reference/`, prior work to `outputs/`. Never delete anything.
 4. **Index it.** Dispatch the corridor-cookbook indexer agent to catalog what lives where into `index.md`.
-5. **Record the project in the brain.** Call the personal_capture tool, type project, with the name, a one-line summary, the state, the next step, and the folder path. This gives the workspace a twin that outlives the session. If no connector is present, say so in one line and continue.
+5. **Record the project in the brain.** First `personal_search` the project name. If a project record already exists, `personal_update` its state and next step, because capture is create-only and a repeat name conflicts. Otherwise call `personal_capture`, type project, with these fields: name, summary, state, next_step, and notes. Put the folder's absolute path in notes, for example "Workspace: /Users/you/monthly-report"; there is no path field, so a path anywhere else is dropped. This gives the workspace a twin that outlives the session. If no connector is present, say so in one line and continue.
 6. **Close with the tree.** Draw the folder tree in chat as a fenced text block, annotated with how work flows through it. Plain text only, no HTML, no separate file.
 
 ## The two files that carry the folder

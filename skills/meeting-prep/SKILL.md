@@ -9,7 +9,7 @@ Prep is situational. The same two people can need a negotiation read one week an
 
 1. **Identify the meeting.** Search the connected calendar for the meeting the user described. With no calendar connected, ask who it is with and when, nothing more. Say the meeting back in one line and get a yes before spending time reading.
 
-2. **Read the brain first.** Call `cold_start_context`, then `personal_search` for each attendee, their company, and the subject. This is the user's own view: what was promised, what is unresolved, what they think privately. Everything you read afterward lands against it.
+2. **Read the brain first.** Call `cold_start_context`, then `personal_search` for each attendee, their company, and the subject. This is the user's own view: what was promised, what is unresolved, what they think privately. Everything you read afterward lands against it. If no personal brain connector is present, say so in one line, skip this step, and continue from the calendar and email alone.
 
 3. **Read the record.** Call `meeting_search` filtered by `attendee_email`, then `meeting_details` with `include_summary: true` on the most recent hit. Open the transcript only if the summary leaves a real question. Then read the recent email thread if a mail connector is connected.
 

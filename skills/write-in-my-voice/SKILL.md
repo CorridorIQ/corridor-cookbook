@@ -7,7 +7,7 @@ description: Draft or reply to an email as the user, using the style profile sav
 
 Read the style profile before writing. Every time, including the second email in the same session, because a voice held only in the conversation drifts back to default after a few messages. The file is the only thing that holds it.
 
-1. **Load the profile.** Call `personal_read` on `notes/my-email-voice.md`. If it is missing, say so and offer to run `learn-my-voice`, which builds it in a few minutes from their sent mail. If they want the draft now, ask for 3 emails they wrote, use those for this draft only, and tell them the result is a one-off guess rather than their voice.
+1. **Load the profile.** If no personal brain connector is present at all, say so in one line, ask for 3 sample emails plus the recipient and context, and skip every brain step below. Otherwise call `personal_read` on `notes/my-email-voice.md`. If it is missing, say so and offer to run `learn-my-voice`, which builds it in a few minutes from their sent mail. If they want the draft now, ask for 3 emails they wrote, use those for this draft only, and tell them the result is a one-off guess rather than their voice.
 
 2. **Load the context.** Call `cold_start_context`, then `personal_search` for the recipient, their company, and the subject. If the email follows a meeting, read that meeting's summary with `meeting_details`. If it continues a thread, read the thread. An email in the right voice with the wrong facts is worse than no draft.
 
@@ -19,6 +19,6 @@ Read the style profile before writing. Every time, including the second email in
 
 6. **Send only on their word.** Wait for an explicit yes, then create the draft or send it through the connected mail account. Silence is not a yes.
 
-7. **Feed corrections back.** If they rewrite any part of it, ask what sounded off and offer to add that rule to `notes/my-email-voice.md` with `personal_update`. One correction per email compounds faster than a perfect first profile.
+7. **Feed corrections back.** If they rewrite any part of it, ask what sounded off, `personal_read` `notes/my-email-voice.md` fresh, and offer to add that rule with `personal_update`. One correction per email compounds faster than a perfect first profile.
 
 Done when the draft passes the self-check against the profile, the facts trace to something you read, and the user could send it without editing.
