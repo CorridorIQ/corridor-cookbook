@@ -1,6 +1,6 @@
 # The eight Decompose My Workflow questions
 
-From Zave's Aug 12 BIRD shared-skills session. Ask them in order, two to four per round, each with concrete options and a recommendation. Verbatim below so the wording stays intact.
+From a Corridor Context shared-skills session. Ask them in order, two to four per round, each with concrete options and a recommendation. Verbatim below so the wording stays intact.
 
 1. The target. What is this workflow called, how often does it run, and what
    is the finished product? What is the single biggest time sink inside it?
