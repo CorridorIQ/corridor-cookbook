@@ -43,7 +43,7 @@ Five standalone skills that do not change:
 | `learn-my-voice` | Reads emails you actually sent and saves a style profile of how you write into your brain. Run it once, then re-run when drafts stop sounding right. |
 | `write-in-my-voice` | Drafts and replies to email in that voice, checking every draft against the profile before showing it. Never sends without your go. |
 
-`setup-workspace` and `make-a-plan` are retired. They are replaced by `scaffold` and `plan`, and stay one release as two-line pointers so anyone on v0.1 is not stranded.
+`setup-workspace` and `make-a-plan` are gone. `scaffold` and `plan` replace them.
 
 ## Agents
 
