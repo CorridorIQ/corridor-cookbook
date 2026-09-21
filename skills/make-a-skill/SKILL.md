@@ -34,7 +34,7 @@ Done when you can say the trigger, the inputs, the output shape, and the one hum
 
 ## 3. Write the skill
 
-Build from `references/template.md`, following the 12 rules in `references/rules.md`. Keep the main file short and push detail into `references/`. Name the folder for the job. End it with one worked example in the real output format, the way `examples/monthly-budget-close/` does.
+Build from `references/template.md`, following the 12 rules in `references/rules.md`. Keep the main file short and push detail into `references/`. Name the folder for the job. End it with one worked example in the real output format, the way `examples/monthly-budget-close/SKILL.example.md` does. That file is named `SKILL.example.md` so it reads as a reference and never loads as a skill; a real skill's main file is `SKILL.md`.
 
 ## 4. Test it, read the transcript
 
