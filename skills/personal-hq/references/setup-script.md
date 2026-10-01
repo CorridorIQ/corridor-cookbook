@@ -96,9 +96,9 @@ Skip this moment if `notes/my-email-voice.md` already exists ("Your drafts will 
 
 ## Moment 7: the Sonnet tap
 
-> Your HQ runs three times every weekday, at 7, noon, and 5, plus a short recap Friday at 4. Should I run it on Sonnet? It's fast and uses much less of your Claude allowance.
+> Your HQ runs three times every weekday, at 7, noon, and 5, plus a short recap Friday at 4. Should I run it on Sonnet 5.5? It's fast and uses much less of your Claude allowance.
 
-Options: "Use Sonnet (recommended)" and "Keep the current model". Their tap is the go-ahead to set the model. Use the times they gave in Moment 2 if they gave any.
+Options: "Use Sonnet 5.5 (recommended)" and "Keep the current model". Their tap is the go-ahead to set the model. Use the times they gave in Moment 2 if they gave any.
 
 ### Publishing, said while you work
 

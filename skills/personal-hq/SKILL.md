@@ -26,7 +26,7 @@ Use base names; the host may add a prefix. Load deferred tools with ToolSearch.
 | Board | the Artifact tool (publish, list, read) and the ArtifactData tool (get, list, query, set, update, delete, batch; `if_version` on writes) |
 | Scheduled tasks | `list_triggers`, `create_trigger`, `update_trigger`, `fire_trigger`, `delete_trigger` |
 
-Never use local cron tools; they die with the session. If the scheduled-task tools are missing but the app has its own scheduled tasks (Cowork), create the same four tasks there with the same names, prompts, local times, Sonnet, and automatic approval. If neither exists, say "Your board is live, but this app can't run updates on a schedule yet. Say 'check my HQ' once that's turned on and I'll finish," and stop after Publish.
+Never use local cron tools; they die with the session. If the scheduled-task tools are missing but the app has its own scheduled tasks (Cowork), create the same four tasks there with the same names, prompts, local times, Sonnet 5.5, and automatic approval. If neither exists, say "Your board is live, but this app can't run updates on a schedule yet. Say 'check my HQ' once that's turned on and I'll finish," and stop after Publish.
 
 Task names: `Personal HQ: morning librarian`, `Personal HQ: midday librarian`, `Personal HQ: evening librarian`, `Personal HQ: Friday recap`. A test board's tasks end in " (test)" and its title ends in "(Test)". Updates find a board's tasks by their Board line, never by the name suffix.
 
@@ -58,7 +58,7 @@ The person answers or clicks at most seven times. The exact words for each momen
 4. **The look.** Fill and copy the picker in one shell command, then publish the copy privately and open it: `sed -e 's/__OWNER__/<first name>/g' -e 's/__AREAS__/<JSON array of areas>/g' <skill folder>/assets/picker.html > <your scratchpad or working folder>/picker.html` (escape any `/` or `&` in the values). Never retype, rebuild, or hand-write the page; if no shell exists, read the file and write it back byte for byte with only the tokens changed. Ask two questions, layout first: `desk` (a grid by your areas), `columns` (by status), `day` (one calm line from today to later), `list` (your top three, then everything else). Then style: `clearwater` (default, recommended), `morning-light`, `briefing`, `graphite`. Teach once: "You can change any of this later by telling me here or commenting on the board."
 5. **Gentle privacy check**, asked once, in the script's words, even when they asked you to skip questions: it is one line and it is the only place they name what stays out. Then write the brain files (below).
 6. **Voice offer**, skipped if `notes/my-email-voice.md` exists. Yes runs `learn-my-voice` now, with a one-message read-back.
-7. **Sonnet tap**: "Use Sonnet (recommended)" or "Keep the current model". Plus the permissions walkthrough, only if needed (Schedule).
+7. **Sonnet tap**: "Use Sonnet 5.5 (recommended)" or "Keep the current model". Plus the permissions walkthrough, only if needed (Schedule).
 
 **Write the brain files** after Moment 5, following `references/brain-files.md`: `personal_write` `notes/hq/preferences.md` (their own words for "What I want each morning" and "Leave out", plus the policy line), `notes/hq/learnings.md` and `notes/hq/opportunities.md` (empty sections), and `notes/hq/hq.md` (hub; fill `board_url` after Publish with `personal_update`). On a re-run, read first and use `personal_update` so nothing they added is lost.
 
@@ -90,7 +90,7 @@ Build all four prompts from the one fenced block in `references/librarian-prompt
 
 Arizona stays at UTC-7 all year: use the Mountain winter values year-round and skip the daylight-saving line. Everywhere else, UTC schedules don't follow daylight saving: tell them in one line that on November 1 their updates would shift an hour, the morning librarian will put a card on the board when that happens, and "check my HQ" fixes it.
 
-Call `create_trigger` once per task with `name`, `cron_expression`, `prompt`, `initiation: "human_request"`, and the Sonnet model if they tapped it and the tool accepts `model`; otherwise set `model` with `update_trigger` right after. Pass `claude-sonnet-5`; if the scheduler rejects it, try `sonnet`; if both fail, keep the current model and say so in one line. Never change the model without their tap. Confirm `derived_state.model` on each.
+Call `create_trigger` once per task with `name`, `cron_expression`, `prompt`, `initiation: "human_request"`, and the Sonnet model if they tapped it and the tool accepts `model`; otherwise set `model` with `update_trigger` right after. Pass `claude-sonnet-5-5` (Sonnet 5.5). Then confirm each task's `derived_state.model` names Sonnet 5.5, not Sonnet 5 or another model. If the scheduler rejects the id or shows anything else, tell them in one line to open the task under Scheduled, click the pencil, and pick **Sonnet 5.5** from the model menu, then check again. Never settle for an older Sonnet, and never change the model without their tap.
 
 **Permissions.** Read each result's `derived_state.permission_mode`. `"auto"` means it runs on its own. Anything else means every run would wait for an Allow click nobody gives. If any task is not on auto, do the walkthrough in `references/setup-script.md`, slowly, then `list_triggers` again and name any task still not on auto.
 
@@ -120,7 +120,7 @@ Use the four closing lines in `references/setup-script.md`: where the board live
 **"Check my HQ"** (also "update my HQ"). Fix what you can, then report in five plain lines or fewer.
 1. Find the four tasks by name and by the hub's `board_url`. Rebuild any missing task.
 2. **Version patch by hand.** Compare each task's `HQ_PROMPT_VERSION` with `references/librarian-prompt.md`. If older, do exactly what the librarian's STEP 0 does, with the person watching: save the restore point to `notes/hq/backups/`, replace only the text between the markers with the current block (the same block for all four tasks), read back, restore on any mismatch. Hands-on releases are applied here too: keep the five header lines and any lines the person added outside the markers, and replace everything from the opening marker to the closing marker with the current block. Then set the hub's `hq_version`. Never lower a version. If the hub says `auto_updates: paused`, ask once whether to turn automatic improvements back on.
-3. Each task: enabled, `permission_mode: "auto"`, Sonnet, schedule matches the preferences Schedule at today's clock offset (fix with `update_trigger` if daylight saving moved it), last run succeeded.
+3. Each task: enabled, `permission_mode: "auto"`, Sonnet 5.5, schedule matches the preferences Schedule at today's clock offset (fix with `update_trigger` if daylight saving moved it), last run succeeded.
 4. Board: `meta/sweep.last_sweep_at` within one weekday; read its summary and `recent` for "skipped", "not connected", or "possible preference" notes. Offer each possible preference as one question.
 5. Brain: hub `updated` within 10 days, its links resolve, preferences exists, voice profile present (else offer `learn-my-voice`).
 
@@ -152,7 +152,7 @@ Use the four closing lines in `references/setup-script.md`: where the board live
 | "Refresh your HQ notes" card | Evening updates aren't writing, or the brain connector lapsed | "Check my HQ" step 5. |
 | Improvements never arrive; summary says "version check skipped" | The cloud session can't load the skill, or the plugin isn't syncing | "Check my HQ" applies them by hand; turn on automatic sync for the plugin. |
 | An update made things worse | A bad release | "Roll back my HQ"; tell whoever set up your HQ what broke. |
-| Usage is burning fast | Updates on a larger model, or a very busy inbox | Move tasks to Sonnet with their OK; if still heavy, pause the midday librarian first. |
+| Usage is burning fast | Updates on a larger model, or a very busy inbox | Move tasks to Sonnet 5.5 with their OK; if still heavy, pause the midday librarian first. |
 | Board says "Live data unavailable" | Opened outside claude.ai, or published without the data rule | Open it from the Artifacts list; if it persists, republish with the capabilities above. |
 | A "Verify sender" or "Review" card | A message tried to trick an assistant or looked like a scam | Nothing was done with it. Check it yourself, ideally by phone with the real sender. |
 
