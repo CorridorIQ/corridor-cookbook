@@ -18,4 +18,4 @@ In plain words:
 - Every Friday afternoon, a short recap of your week is saved to your notes.
 - Messages that look like scams or try to give instructions to an assistant are flagged for you to check, never acted on.
 
-For maintainers: first public version of `personal-hq`. Built on Kyli Gotham's `todo-dashboard-builder` v7 (ownership, duplicate check, and summary-write fixes carried over), with one block per task, settings in `notes/hq/preferences.md`, a Drafts collection, and capped evening note upkeep.
+For maintainers: first public version of `personal-hq`. Built with one block per task, settings in `notes/hq/preferences.md`, a Drafts collection, and capped evening note upkeep.
