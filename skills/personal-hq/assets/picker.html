@@ -1,0 +1,802 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pick your HQ look</title>
+<!--
+  Personal HQ setup picker (personal-hq skill). Static: it shows the four board layouts as live
+  miniatures with sample data, and the four style presets. Tapping a preset restyles the page.
+  The owner tells Claude their pick in chat; nothing is submitted from here.
+-->
+<script>document.documentElement.setAttribute("data-style", "clearwater");</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500&family=Outfit:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   Tokens, shared with hq.html. In the picker every token rule also matches
+   .scope[data-style], so each preset card carries its own palette and fonts
+   whatever the page style is.
+   ============================================================
+   Tokens. Four presets share one token vocabulary so the board CSS
+   never branches on style. Hex values come from design/DESIGN-BAR.md
+   section 6; no color appears outside these blocks except rgba() of
+   --shadow-rgb, which is the preset's ink.
+   ============================================================ */
+:root, .scope {
+  color-scheme: light;
+  --page: #f6fafc; --surface: #ffffff; --raised: #ffffff; --chip: #eaf4f9;
+  --ink: #123049; --muted: #4a6d81; --accent: #0b7db8; --accent-hover: #0a70a5; --on-accent: #ffffff;
+  --soft: #77c9db; --border: #dceaf2; --line-strong: #c2dae7; --hover: #eef6fa; --track: #e6eff5;
+  --ok: #17703f; --ok-tint: #e6f4ec; --warn: #8f5a17; --warn-dot: #b4762a; --warn-tint: #f5ead9;
+  --shadow-rgb: 18, 48, 73;
+  --font-ui: 'Familjen Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-display: var(--font-ui);
+  --font-mono: 'Spline Sans Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  --display-weight: 600; --display-track: -0.022em;
+  --r-card: 10px; --r-control: 8px; --r-window: 14px;
+  --ease: cubic-bezier(.23, 1, .32, 1);
+  --ease-io: cubic-bezier(.77, 0, .175, 1);
+  --ease-breathe: cubic-bezier(.6, 0, .4, 1);
+  --ease-fade: cubic-bezier(.45, 0, .55, 1);
+}
+:root[data-style="morning-light"], .scope[data-style="morning-light"] {
+  --page: #f7fafc; --chip: #eef6fb; --soft: #bfe4f2; --border: #dbe8f0; --line-strong: #cfe3ef; --hover: #eef6fb;
+  --font-ui: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --display-weight: 500; --display-track: -0.034em;
+  --r-card: 16px; --r-control: 999px; --r-window: 22px;
+}
+:root[data-style="briefing"], .scope[data-style="briefing"] {
+  --accent: #053d5b; --accent-hover: #0a4f74;
+  --font-ui: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-display: 'Source Serif 4', Georgia, serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  --display-track: -0.012em; --r-card: 6px; --r-control: 6px; --r-window: 8px; --track: var(--chip);
+}
+:root[data-style="graphite"], .scope[data-style="graphite"] {
+  --page: #f1f2f3; --chip: #f2f2f3; --ink: #1f2124; --muted: #62656b; --accent: #0a6fd6; --accent-hover: #085fb8;
+  --soft: #e9f3ff; --border: #ecedef; --line-strong: #e0e2e5; --hover: #f2f2f3; --track: #ecedef;
+  --shadow-rgb: 31, 33, 36;
+  --font-ui: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  --display-track: -0.02em; --r-card: 8px; --r-control: 6px; --r-window: 10px;
+}
+/* Dark tokens: written twice on purpose. Once for "system" (media query, unless the viewer
+   forced light) and once for a forced data-theme="dark". Keep the two copies identical. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]), :root:not([data-theme="light"]) .scope {
+    color-scheme: dark;
+    --page: #0a2032; --surface: #0c2537; --raised: #11304a; --chip: #143a57;
+    --ink: #e6f0f6; --muted: #a9c8d8; --accent: #3fa3d8; --accent-hover: #5ab3e2; --on-accent: #0a2032;
+    --soft: #77c9db; --border: #1d3b52; --line-strong: #2a4d66; --hover: #11304a; --track: #0c2537;
+    --ok: #5cc08a; --ok-tint: rgba(92, 192, 138, .14); --warn: #e2b26a; --warn-dot: #e2b26a; --warn-tint: rgba(226, 178, 106, .14);
+    --shadow-rgb: 4, 16, 26;
+  }
+  :root:not([data-theme="light"])[data-style="morning-light"], :root:not([data-theme="light"]) .scope[data-style="morning-light"] { --ink: #f2f8fb; --muted: #9dbdd0; --accent: #77c9db; --accent-hover: #9ad0e9; --soft: #4d9cc4; }
+  :root:not([data-theme="light"])[data-style="briefing"], :root:not([data-theme="light"]) .scope[data-style="briefing"] {
+    --page: #0e1a22; --surface: #13232d; --raised: #1b3140; --chip: #1b3140; --ink: #e8eef2; --muted: #9fb2bf;
+    --accent: #77c9db; --accent-hover: #9adbe8; --on-accent: #13232d; --soft: #3f7f93; --border: #22394a; --line-strong: #2e4a5e; --hover: #1b3140; --track: #13232d;
+  }
+  :root:not([data-theme="light"])[data-style="graphite"], :root:not([data-theme="light"]) .scope[data-style="graphite"] {
+    --page: #111214; --surface: #17181b; --raised: #222428; --chip: #222428; --ink: #ededee; --muted: #a0a3a8;
+    --accent: #4c9dff; --accent-hover: #6eb0ff; --on-accent: #111214; --soft: #1b2a3d; --border: #26282c; --line-strong: #33363b; --hover: #222428; --track: #17181b;
+    --shadow-rgb: 0, 0, 0;
+  }
+}
+:root[data-theme="dark"], :root[data-theme="dark"] .scope {
+  color-scheme: dark;
+  --page: #0a2032; --surface: #0c2537; --raised: #11304a; --chip: #143a57;
+  --ink: #e6f0f6; --muted: #a9c8d8; --accent: #3fa3d8; --accent-hover: #5ab3e2; --on-accent: #0a2032;
+  --soft: #77c9db; --border: #1d3b52; --line-strong: #2a4d66; --hover: #11304a; --track: #0c2537;
+  --ok: #5cc08a; --ok-tint: rgba(92, 192, 138, .14); --warn: #e2b26a; --warn-dot: #e2b26a; --warn-tint: rgba(226, 178, 106, .14);
+  --shadow-rgb: 4, 16, 26;
+}
+:root[data-theme="dark"][data-style="morning-light"], :root[data-theme="dark"] .scope[data-style="morning-light"] { --ink: #f2f8fb; --muted: #9dbdd0; --accent: #77c9db; --accent-hover: #9ad0e9; --soft: #4d9cc4; }
+:root[data-theme="dark"][data-style="briefing"], :root[data-theme="dark"] .scope[data-style="briefing"] {
+  --page: #0e1a22; --surface: #13232d; --raised: #1b3140; --chip: #1b3140; --ink: #e8eef2; --muted: #9fb2bf;
+  --accent: #77c9db; --accent-hover: #9adbe8; --on-accent: #13232d; --soft: #3f7f93; --border: #22394a; --line-strong: #2e4a5e; --hover: #1b3140; --track: #13232d;
+}
+:root[data-theme="dark"][data-style="graphite"], :root[data-theme="dark"] .scope[data-style="graphite"] {
+  --page: #111214; --surface: #17181b; --raised: #222428; --chip: #222428; --ink: #ededee; --muted: #a0a3a8;
+  --accent: #4c9dff; --accent-hover: #6eb0ff; --on-accent: #111214; --soft: #1b2a3d; --border: #26282c; --line-strong: #33363b; --hover: #222428; --track: #17181b;
+  --shadow-rgb: 0, 0, 0;
+}
+:root, .scope {
+  --shadow-card: 0 0 0 1px var(--border), 0 1px 2px rgba(var(--shadow-rgb), .05), 0 2px 6px rgba(var(--shadow-rgb), .04);
+  --shadow-card-hover: 0 0 0 1px color-mix(in srgb, var(--accent) 32%, var(--border)), 0 1px 2px rgba(var(--shadow-rgb), .05), 0 14px 32px -20px rgba(var(--shadow-rgb), .38);
+  --shadow-btn: 0 0 0 1px var(--line-strong), 0 1px 2px rgba(var(--shadow-rgb), .06);
+  --shadow-lift: 0 0 0 1px var(--border), 0 24px 56px -36px rgba(var(--shadow-rgb), .42);
+  --shadow-cta: 0 6px 22px -6px color-mix(in srgb, var(--accent) 50%, transparent);
+  --shadow-cta-hover: 0 12px 30px -8px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+/* Briefing draws rules, not shadows. */
+:root[data-style="briefing"], .scope[data-style="briefing"] { --shadow-card: 0 0 0 1px var(--border); --shadow-card-hover: 0 0 0 1px color-mix(in srgb, var(--accent) 40%, var(--border)); }
+
+/* During a style or theme swap only, every color crossfades over 240ms. Transitions are
+   not left on permanently: that would make every hover and re-render pay for them. */
+:root.is-restyling *, :root.is-restyling *::before, :root.is-restyling *::after {
+  transition: background-color 240ms var(--ease-fade), color 240ms var(--ease-fade), border-color 240ms var(--ease-fade), box-shadow 240ms var(--ease-fade), outline-color 240ms var(--ease-fade) !important;
+}
+
+/* ============================================================ Base */
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; background: var(--page); }
+body {
+  margin: 0; min-height: 100vh; background: var(--page); color: var(--ink);
+  font: 400 15px/1.5 var(--font-ui); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+}
+::selection { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--ink); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+a { color: var(--accent); text-underline-offset: 3px; text-decoration-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+h1, h2, h3, p { margin: 0; }
+h1, h2 { text-wrap: balance; }
+p { text-wrap: pretty; }
+.num { font-variant-numeric: tabular-nums; }
+.icon { width: 16px; height: 16px; flex: none; display: block; }
+.icon-sm { width: 12px; height: 12px; flex: none; display: block; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* Morning Light's one decorative element: a soft glow top right, the website hero atmosphere. */
+:root[data-style="morning-light"] body::before {
+  content: ""; position: fixed; z-index: 0; pointer-events: none; top: -30vh; right: -20vw; width: 80vw; height: 90vh;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--accent-hover) 22%, transparent), transparent);
+}
+
+.app { position: relative; z-index: 1; max-width: 1376px; margin: 0 auto; padding: 32px 32px 64px; }
+
+/* Mono is a labeling texture: eyebrows, chips, counts, dates. Never sentences. */
+.eyebrow { font: 500 11px/1.4 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-height: 22px; padding: 3px 9px; border-radius: 999px;
+  background: var(--chip); color: var(--muted); font: 500 11px/1.3 var(--font-mono); letter-spacing: .04em; text-transform: uppercase;
+  white-space: nowrap; text-decoration: none;
+}
+.chip > .t { overflow: hidden; text-overflow: ellipsis; }
+.chip .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none; }
+.chip-accent { background: var(--surface); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line-strong); }
+.chip-accent .dot { background: var(--accent); }
+.chip-warn { background: var(--warn-tint); color: var(--warn); }
+.chip-warn .dot { background: var(--warn-dot); }
+.chip-ok { background: var(--ok-tint); color: var(--ok); }
+
+/* ============================================================ Buttons */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 0 16px;
+  border: 0; border-radius: var(--r-control); background: var(--surface); color: var(--ink); box-shadow: var(--shadow-btn);
+  font: 500 14px/1 var(--font-ui); text-decoration: none; white-space: nowrap;
+  transition: transform 200ms var(--ease), box-shadow 200ms var(--ease), background-color 200ms var(--ease), color 200ms var(--ease);
+}
+.btn:hover { background: var(--hover); }
+.btn:active { transform: scale(.97); transition-duration: 100ms; }
+.btn-primary { background: var(--accent); color: var(--on-accent); box-shadow: var(--shadow-cta); }
+.btn-primary:hover { background: var(--accent-hover); transform: translateY(-2px); box-shadow: var(--shadow-cta-hover); }
+.btn-primary:active { transform: scale(.97); }
+.btn-quiet { background: transparent; box-shadow: none; color: var(--muted); padding: 0 12px; }
+.btn-quiet:hover { background: var(--hover); color: var(--ink); }
+.btn[aria-disabled="true"] { background: transparent; color: var(--muted); box-shadow: inset 0 0 0 1px var(--border); cursor: not-allowed; transform: none; }
+.btn .arrow { transition: transform 200ms var(--ease); }
+.btn:hover .arrow { transform: translate(1px, -1px); }
+
+/* Segmented control: tabs, layout and theme switches. Track plus a raised active thumb. */
+.seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: calc(var(--r-control) + 3px); background: var(--track); box-shadow: inset 0 0 0 1px var(--border); }
+:root[data-style="morning-light"] .seg, .scope[data-style="morning-light"] .seg { border-radius: 999px; }
+.seg button {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border: 0; border-radius: var(--r-control);
+  background: transparent; color: var(--muted); font: 500 14px/1 var(--font-ui);
+  transition: background-color 160ms var(--ease), color 160ms var(--ease), box-shadow 160ms var(--ease), transform 100ms var(--ease);
+}
+.seg button:hover { color: var(--ink); }
+.seg button:active { transform: scale(.97); }
+.seg button[aria-selected="true"], .seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(var(--shadow-rgb), .12), 0 0 0 1px var(--border); }
+.tabs button[aria-selected="true"] { background: var(--accent); color: var(--on-accent); box-shadow: none; }
+.tabs .count { font: 500 11px/1 var(--font-mono); opacity: .8; font-variant-numeric: tabular-nums; }
+
+/* ============================================================ Header */
+.top { position: relative; z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 40px; }
+.top-right { display: flex; align-items: center; gap: 8px; }
+.hero { padding: 24px 0 32px; animation: fade-in 400ms var(--ease) both; }
+.greeting {
+  font: var(--display-weight) clamp(30px, 3.4vw, 44px)/1.08 var(--font-display); letter-spacing: var(--display-track);
+  margin-top: 12px;
+}
+.focus { margin-top: 12px; max-width: 64ch; font-size: clamp(17px, 1.5vw, 20px); line-height: 1.45; color: var(--ink); }
+.hero-row { display: grid; grid-template-columns: auto 1fr; gap: 48px; align-items: end; margin-top: 32px; }
+.stats { display: flex; gap: 40px; }
+.stat .n { display: block; font: 400 44px/1 var(--font-display); letter-spacing: -0.026em; font-variant-numeric: tabular-nums; }
+:root[data-style="briefing"] .stat .n, .scope[data-style="briefing"] .stat .n { font-family: var(--font-ui); font-weight: 400; }
+.stat .eyebrow { display: block; margin-top: 8px; }
+.fresh { justify-self: end; text-align: right; display: grid; gap: 8px; justify-items: end; }
+.fresh p { font-size: 13px; color: var(--muted); }
+.sweeping { display: inline-flex; align-items: center; gap: 8px; }
+.sources { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; align-items: center; }
+.sources .eyebrow { margin-right: 4px; }
+
+/* ============================================================ Toolbar */
+.bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding-bottom: 24px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+.bar-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.nudge { display: flex; align-items: baseline; gap: 10px; margin: -8px 0 24px; font-size: 14px; color: var(--muted); }
+.nudge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--warn-dot); flex: none; transform: translateY(-2px); }
+.nudge button { border: 0; background: none; padding: 0; color: var(--ink); text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px; }
+.nudge button:hover { text-decoration-color: var(--accent); }
+
+/* ============================================================ Cards
+   Fixed anatomy (rule 7): title, one muted context line, a chip row with the
+   due date right-aligned. Nothing else lives on the face; detail opens on tap. */
+.stack { display: grid; gap: 8px; align-content: start; }
+.card {
+  position: relative; display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 12px; padding: 14px 16px 14px 14px;
+  background: var(--surface); border-radius: var(--r-card); box-shadow: var(--shadow-card); cursor: pointer;
+  transform-origin: 50% 100%;
+  transition: box-shadow 240ms var(--ease), transform 100ms var(--ease), opacity 200ms var(--ease-fade);
+}
+.card:hover { box-shadow: var(--shadow-card-hover); }
+.card:active { transform: scale(.97); }
+.card:has(.check:active), .card:has(.src:active) { transform: none; }
+.card-title { font-size: 15px; font-weight: 600; line-height: 1.35; letter-spacing: -0.005em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-wrap: pretty; }
+.card-title span {
+  background: linear-gradient(var(--soft), var(--soft)) no-repeat 0 58% / 0% 1.5px; -webkit-box-decoration-break: clone; box-decoration-break: clone;
+  transition: background-size 260ms var(--ease-io), color 260ms var(--ease);
+}
+.card-ctx { margin-top: 2px; font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; min-width: 0; }
+.card-foot .due { margin-left: auto; padding-left: 8px; font: 500 11px/1 var(--font-mono); letter-spacing: .04em; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.src { flex: 0 1 auto; min-width: 0; position: relative; transition: background-color 200ms var(--ease), color 200ms var(--ease); }
+a.src:hover { background: var(--hover); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line-strong); }
+/* Medium confidence: the card reads as tentative, not as a different kind of thing. */
+.card[data-conf="medium"] { box-shadow: 0 1px 2px rgba(var(--shadow-rgb), .04); outline: 1px dashed var(--line-strong); outline-offset: -1px; }
+.card[data-conf="medium"]:hover { outline-color: color-mix(in srgb, var(--accent) 45%, var(--line-strong)); }
+.card[data-conf="medium"] .card-title { font-weight: 500; }
+/* Suspicious: calm amber ring and a Review chip. Never red, never an alarm. */
+.card[data-sus] { box-shadow: 0 0 0 1px color-mix(in srgb, var(--warn-dot) 50%, var(--border)), 0 1px 2px rgba(var(--shadow-rgb), .05); }
+.card.is-done .card-title { font-weight: 500; color: var(--muted); }
+.card.is-done .card-title span, .card.is-completing .card-title span { background-size: 100% 1.5px; }
+.card.is-completing .card-title span { color: var(--muted); }
+
+/* The check: fills accent, then a 1.8px tick draws itself on the io curve. */
+.check {
+  position: relative; width: 22px; height: 22px; margin-top: 0; padding: 0; border: 0; border-radius: 6px;
+  background: var(--surface); box-shadow: inset 0 0 0 1.5px var(--line-strong); color: var(--on-accent);
+  transition: background-color 200ms var(--ease), box-shadow 200ms var(--ease), transform 100ms var(--ease);
+}
+:root[data-style="morning-light"] .check, .scope[data-style="morning-light"] .check { border-radius: 50%; }
+.check::before { content: ""; position: absolute; inset: -9px; }
+.check:hover { box-shadow: inset 0 0 0 1.5px var(--accent); }
+.check:active { transform: scale(.9); }
+.check svg { position: absolute; inset: 3px; width: 16px; height: 16px; }
+.check path { stroke-dasharray: 22; stroke-dashoffset: 22; transition: stroke-dashoffset 240ms var(--ease-io) 60ms; }
+.is-done .check, .is-completing .check { background: var(--accent); box-shadow: none; }
+.is-done .check path, .is-completing .check path { stroke-dashoffset: 0; }
+
+/* The "now" card: the single most urgent thing. Accent ring, and on fine pointers the
+   website's cursor-lit border (a 190px glow masked down to a 1.5px band). One card only. */
+.card.is-now { box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 55%, var(--border)), 0 24px 56px -36px rgba(var(--shadow-rgb), .42); }
+@media (hover: hover) and (pointer: fine) {
+  .card.is-now::after {
+    content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1.5px; pointer-events: none; opacity: 0;
+    background: radial-gradient(190px circle at var(--mx, 50%) var(--my, 50%), color-mix(in srgb, var(--accent) 55%, transparent), color-mix(in srgb, var(--soft) 18%, transparent) 55%, transparent 80%);
+    -webkit-mask: linear-gradient(var(--ink) 0 0) content-box, linear-gradient(var(--ink) 0 0); -webkit-mask-composite: xor; mask-composite: exclude;
+    transition: opacity 300ms var(--ease);
+  }
+  .card.is-now:hover::after { opacity: 1; }
+  /* Source chip tooltip: exact origin after 300ms; once one has shown, the rest show at once. */
+  .src[data-tip]::after {
+    content: attr(data-tip); position: absolute; left: 0; bottom: calc(100% + 8px); z-index: 5; max-width: 340px; width: max-content;
+    padding: 6px 10px; border-radius: 6px; background: var(--raised); color: var(--ink); box-shadow: var(--shadow-lift);
+    font: 500 11px/1.4 var(--font-mono); letter-spacing: .04em; white-space: normal; pointer-events: none;
+    opacity: 0; transform: translateY(3px); transition: opacity 160ms var(--ease-fade), transform 160ms var(--ease);
+  }
+  .src[data-tip]:hover::after { opacity: 1; transform: none; transition: opacity 240ms var(--ease) 300ms, transform 300ms var(--ease) 300ms; }
+  .tips-warm .src[data-tip]:hover::after { transition-delay: 0ms; }
+}
+
+/* Cards land one by one: rise 5px from .97 (chips-lab cascade), 70ms stagger. Only first
+   render and newly arrived cards animate; a re-render never replays it. */
+@keyframes rise { from { opacity: 0; transform: translateY(5px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+.is-new { animation: rise 460ms var(--ease) both; animation-delay: calc(var(--i, 0) * 70ms); }
+
+/* ============================================================ Layout: desk (areas) */
+.section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 0 2px 12px; }
+.section-head h2 { font: 600 15px/1.3 var(--font-display); letter-spacing: -0.01em; }
+:root[data-style="briefing"] .section-head h2, .scope[data-style="briefing"] .section-head h2 { font-size: 17px; }
+.desk { display: grid; grid-template-columns: repeat(auto-fill, minmax(288px, 1fr)); gap: 32px 24px; align-items: start; }
+.desk > section { min-width: 0; }
+.drop-on { border-radius: var(--r-card); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent); background: color-mix(in srgb, var(--accent) 4%, transparent); }
+
+/* ============================================================ Layout: columns (status) */
+.cols { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: stretch; }
+.cols > section { min-width: 0; padding: 0 16px; border-left: 1px solid var(--border); min-height: 240px; }
+.cols > section:first-child { padding-left: 0; border-left: 0; }
+.cols > section:last-child { padding-right: 0; }
+.cols .card { cursor: grab; }
+
+/* ============================================================ Layout: day (vertical spine) */
+.day { max-width: 760px; }
+.day > section { position: relative; padding: 0 0 32px 32px; }
+.day > section::before {
+  content: ""; position: absolute; left: 6px; top: 18px; bottom: 0; width: 2px;
+  background: radial-gradient(circle, var(--soft) 1px, transparent 1.4px) 0 0 / 2px 7px repeat-y;
+}
+.day > section:last-child::before { display: none; }
+.day .node { position: absolute; left: 1px; top: 4px; width: 12px; height: 12px; border-radius: 50%; background: var(--page); box-shadow: inset 0 0 0 2px var(--line-strong); }
+.day > section:first-child .node { box-shadow: inset 0 0 0 2px var(--accent); }
+.day > section:first-child .node::after { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: var(--accent); }
+
+/* ============================================================ Layout: list (one calm column) */
+.list { max-width: 720px; }
+.top3 { display: grid; gap: 12px; margin-bottom: 40px; }
+.top3 .rankrow { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 8px; align-items: start; }
+.top3 .rank { font: 400 32px/1 var(--font-display); letter-spacing: -0.026em; color: var(--muted); padding-top: 10px; font-variant-numeric: tabular-nums; }
+.list > section { margin-bottom: 32px; }
+
+/* Empty: the orb, still, plus one mono line. */
+.empty { display: flex; align-items: center; gap: 10px; padding: 16px 2px; }
+.empty-hero { flex-direction: column; justify-content: center; text-align: center; gap: 16px; padding: 64px 16px; }
+.orb { color: var(--muted); }
+.orb.live { color: var(--accent); }
+
+/* Collapsed extras: done this week, recently deleted. */
+.extras { margin-top: 40px; display: grid; gap: 8px; max-width: 760px; }
+details.fold { border-top: 1px solid var(--border); padding-top: 4px; }
+details.fold > summary { list-style: none; display: flex; align-items: center; gap: 8px; min-height: 40px; cursor: pointer; border-radius: var(--r-control); }
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary .icon { color: var(--muted); transition: transform 240ms var(--ease); transform: rotate(-90deg); }
+details.fold[open] > summary .icon { transform: none; }
+.rows { display: grid; gap: 0; padding: 4px 0 8px; }
+.row { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 4px 2px; border-bottom: 1px solid var(--border); font-size: 14px; }
+.row:last-child { border-bottom: 0; }
+.row .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .muted { color: var(--muted); }
+
+/* ============================================================ Drafts: each reads like an email */
+.narrow { max-width: 760px; }
+.help { font-size: 14px; color: var(--muted); margin-bottom: 8px; }
+.voice-nudge { display: flex; gap: 10px; align-items: center; padding: 12px 16px; margin: 16px 0 24px; border-radius: var(--r-card); background: var(--surface); box-shadow: var(--shadow-card); font-size: 14px; }
+.voice-nudge .icon { color: var(--accent); }
+.letters { display: grid; gap: 24px; }
+.letter { background: var(--surface); border-radius: var(--r-card); box-shadow: var(--shadow-card); overflow: hidden; }
+.letter.is-new { animation-name: rise; }
+.letter-head { display: grid; gap: 0; padding: 4px 20px; border-bottom: 1px solid var(--border); }
+.lrow { display: grid; grid-template-columns: 72px minmax(0, 1fr) auto; align-items: baseline; gap: 12px; min-height: 40px; padding: 10px 0; font-size: 14px; }
+.lrow + .lrow { border-top: 1px solid var(--border); }
+.lrow .addr { color: var(--muted); }
+.lrow .subj { font-weight: 600; }
+.letter-body {
+  display: block; width: 100%; min-height: 120px; padding: 20px; border: 0; resize: none; background: transparent; color: var(--ink);
+  font: 400 15px/1.6 var(--font-ui); field-sizing: content; outline: none;
+  transition: background-color 200ms var(--ease);
+}
+.letter-body:hover { background: color-mix(in srgb, var(--hover) 50%, transparent); }
+.letter-body:focus { background: var(--hover); }
+.letter-body:focus-visible { outline: none; box-shadow: inset 3px 0 0 var(--accent); }
+.letter-why { padding: 0 20px 16px; font-size: 13px; color: var(--muted); }
+.letter-actions { display: flex; flex-wrap: wrap; gap: 8px; padding: 16px 20px; border-top: 1px solid var(--border); background: var(--page); }
+.letter-actions .btn:last-child { margin-left: auto; }
+.letter.is-stale .letter-body { color: var(--muted); }
+.letter.is-leaving, .card.is-leaving { animation: none; overflow: hidden; transition: height 200ms var(--ease-fade), opacity 160ms var(--ease-fade), margin 200ms var(--ease-fade), padding 200ms var(--ease-fade); }
+
+/* ============================================================ Prompts */
+.prompts { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+.prompt { display: grid; gap: 12px; align-content: start; padding: 20px; background: var(--surface); border-radius: var(--r-card); box-shadow: var(--shadow-card); }
+.prompt h3 { font: 600 16px/1.35 var(--font-display); letter-spacing: -0.01em; }
+.prompt blockquote { margin: 0; padding: 2px 0 2px 14px; border-left: 2px solid var(--soft); font-size: 15px; line-height: 1.55; }
+.prompt .why { font-size: 13px; color: var(--muted); }
+.prompt .btn { justify-self: start; }
+
+/* ============================================================ Week */
+.week-title { font: var(--display-weight) clamp(24px, 2.4vw, 32px)/1.15 var(--font-display); letter-spacing: var(--display-track); margin-top: 8px; }
+.week-stats { display: flex; flex-wrap: wrap; gap: 24px 48px; margin: 32px 0; }
+.weekline { margin: 8px 0 32px; max-width: 520px; }
+.weekline svg { display: block; width: 100%; height: 40px; overflow: visible; }
+.weekline .lbl { font: 500 10px var(--font-mono); letter-spacing: .08em; fill: var(--muted); }
+.weekline .today-dot { transform-box: fill-box; transform-origin: center; animation: breathe 5.2s var(--ease-breathe) infinite alternate; }
+@keyframes breathe { from { opacity: .4; transform: scale(.74); } to { opacity: 1; transform: scale(1.12); } }
+.summary { font-size: 17px; line-height: 1.6; max-width: 64ch; }
+.pathline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 24px; font-size: 14px; color: var(--muted); }
+
+/* ============================================================ Footer */
+.foot { margin-top: 64px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px; }
+.foot p { font-size: 13px; color: var(--muted); }
+
+/* ============================================================ Settings popover */
+.pop-wrap { position: relative; }
+.pop {
+  position: absolute; right: 0; top: calc(100% + 8px); z-index: 30; width: 340px; padding: 16px; display: grid; gap: 16px;
+  background: var(--raised); border-radius: var(--r-window); box-shadow: var(--shadow-lift);
+  transform-origin: top right; animation: pop-in 220ms var(--ease) both;
+}
+:root[data-style="morning-light"] .pop, .scope[data-style="morning-light"] .pop { border-radius: 22px; }
+@keyframes pop-in { from { opacity: 0; transform: translateY(-4px) scale(.98); } to { opacity: 1; transform: none; } }
+.pop .seg { display: flex; }
+.pop .seg button { flex: 1; justify-content: center; padding: 0 8px; font-size: 13px; }
+.swatches { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.swatch { display: grid; gap: 6px; padding: 10px; border: 0; border-radius: var(--r-control); background: var(--surface); box-shadow: inset 0 0 0 1px var(--border); text-align: left; font-size: 13px; font-weight: 500; transition: box-shadow 200ms var(--ease), transform 100ms var(--ease); }
+:root[data-style="morning-light"] .swatch, .scope[data-style="morning-light"] .swatch { border-radius: 12px; }
+.swatch:active { transform: scale(.97); }
+.swatch[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--accent); }
+.swatch .bars { display: flex; gap: 3px; }
+.swatch .bars i { height: 10px; flex: 1; border-radius: 3px; }
+.pop .hint { font-size: 12.5px; color: var(--muted); }
+
+/* ============================================================ Dialogs */
+dialog {
+  width: min(640px, calc(100vw - 32px)); max-height: min(86vh, 900px); padding: 0; border: 0; overflow: auto;
+  border-radius: var(--r-window); background: var(--surface); color: var(--ink); box-shadow: var(--shadow-lift);
+}
+dialog[open] { animation: dlg-in 320ms var(--ease) both; }
+dialog.is-closing { animation: dlg-out 180ms var(--ease-fade) both; }
+dialog::backdrop { background: rgba(var(--shadow-rgb, 18, 48, 73), .32); }
+@keyframes dlg-in { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: none; } }
+@keyframes dlg-out { to { opacity: 0; transform: translateY(4px) scale(.99); } }
+.dlg { padding: 24px; display: grid; gap: 20px; }
+.dlg:focus { outline: none; }
+.dlg-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.dlg-top .chips { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.icon-btn { display: inline-grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: var(--r-control); background: transparent; color: var(--muted); transition: background-color 200ms var(--ease), transform 100ms var(--ease); }
+.icon-btn:hover { background: var(--hover); color: var(--ink); }
+.icon-btn:active { transform: scale(.97); }
+.title-input { width: 100%; border: 0; padding: 4px 0; background: transparent; font: var(--display-weight) 24px/1.25 var(--font-display); letter-spacing: var(--display-track); resize: none; field-sizing: content; outline: none; border-bottom: 1px solid transparent; }
+.title-input:focus { border-bottom-color: var(--accent); }
+.why-line { font-size: 14px; color: var(--muted); }
+.why-line b { color: var(--ink); font-weight: 600; }
+.detail-text { font-size: 15px; line-height: 1.6; }
+.callout { display: flex; gap: 10px; padding: 12px 14px; border-radius: var(--r-control); background: var(--warn-tint); color: var(--ink); font-size: 14px; }
+:root[data-style="morning-light"] .callout, .scope[data-style="morning-light"] .callout { border-radius: 12px; }
+.callout .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn-dot); flex: none; margin-top: 6px; }
+.fields { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.field { display: grid; gap: 6px; }
+.field.full { grid-column: 1 / -1; }
+.input {
+  width: 100%; min-height: 40px; padding: 8px 12px; border: 0; border-radius: var(--r-control); background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line-strong); font-size: 15px; transition: box-shadow 200ms var(--ease);
+}
+:root[data-style="morning-light"] .input, .scope[data-style="morning-light"] .input { border-radius: 12px; }
+.input:focus { outline: none; box-shadow: inset 0 0 0 2px var(--accent); }
+select.input { appearance: none; padding-right: 32px; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 17px) 18px, calc(100% - 12px) 18px; background-size: 5px 5px; background-repeat: no-repeat; }
+.move { display: flex; flex-wrap: wrap; }
+.move button { flex: 1 1 auto; justify-content: center; font-size: 13px; padding: 0 10px; }
+.checklist { display: grid; gap: 2px; }
+.ck { display: flex; align-items: center; gap: 10px; min-height: 40px; font-size: 14px; }
+.ck input { width: 18px; height: 18px; accent-color: var(--accent); margin: 0; }
+.ck.done span { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--soft); }
+.dlg-links { display: flex; flex-wrap: wrap; gap: 8px; }
+.dlg-foot { display: flex; justify-content: space-between; gap: 8px; padding-top: 16px; border-top: 1px solid var(--border); }
+
+/* ============================================================ Toast */
+.toast {
+  position: fixed; left: 50%; bottom: 24px; z-index: 60; display: flex; align-items: center; gap: 12px; max-width: calc(100vw - 32px);
+  padding: 6px 6px 6px 16px; border-radius: 999px; background: var(--raised); color: var(--ink); box-shadow: var(--shadow-lift);
+  transform: translate(-50%, 0); animation: toast-in 360ms var(--ease) both;
+}
+.toast.is-out { animation: toast-out 180ms var(--ease-fade) both; }
+@keyframes toast-in { from { opacity: 0; transform: translate(-50%, 6px) scale(.98); } to { opacity: 1; transform: translate(-50%, 0); } }
+@keyframes toast-out { to { opacity: 0; transform: translate(-50%, 4px); } }
+.toast .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.toast .btn { min-height: 32px; padding: 0 12px; border-radius: 999px; }
+
+/* ============================================================ Responsive */
+@media (max-width: 1100px) {
+  .cols { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 32px 0; }
+  .cols > section { border-left: 0; padding: 0 12px 0 0; min-height: 0; }
+}
+@media (max-width: 860px) {
+  .hero-row { grid-template-columns: 1fr; gap: 24px; }
+  .fresh { justify-self: start; text-align: left; justify-items: start; }
+  .sources { justify-content: flex-start; }
+}
+@media (max-width: 640px) {
+  .app { padding: 16px 16px 48px; }
+  .hero { padding: 16px 0 24px; }
+  .stats { gap: 24px; }
+  .stat .n { font-size: 36px; }
+  .bar { gap: 12px; padding-bottom: 16px; margin-bottom: 16px; }
+  .tabs { width: 100%; }
+  .tabs button { flex: 1; justify-content: center; padding: 0 6px; }
+  .bar-actions { width: 100%; }
+  .bar-actions .btn { flex: 1; }
+  .desk { grid-template-columns: minmax(0, 1fr); }
+  .day > section { padding-left: 28px; }
+  .fields { grid-template-columns: 1fr; }
+  .lrow { grid-template-columns: 60px minmax(0, 1fr); }
+  .lrow > :nth-child(3) { grid-column: 2; justify-self: start; }
+  .letter-actions .btn { flex: 1 1 calc(50% - 8px); }
+  .letter-actions .btn:last-child { margin-left: 0; }
+  .pop { position: fixed; left: 16px; right: 16px; top: 64px; width: auto; }
+  .prompts { grid-template-columns: minmax(0, 1fr); }
+  .dlg { padding: 20px 16px; }
+}
+
+/* Reduced motion zeros durations AND delays, or staggered entrances hold cards invisible. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; transition-delay: 0ms !important; }
+}
+/* ============================================================ Picker */
+.scope { background: var(--page); color: var(--ink); font-family: var(--font-ui); }
+.pick-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; flex-wrap: wrap; padding: 24px 0 40px; }
+.pick-head h1 { font: var(--display-weight) clamp(32px, 4vw, 52px)/1.05 var(--font-display); letter-spacing: -0.03em; margin-top: 12px; }
+.pick-head p { margin-top: 12px; font-size: 18px; max-width: 56ch; color: var(--muted); }
+.step { display: flex; align-items: baseline; gap: 12px; margin: 16px 0 20px; }
+.step h2 { font: 600 22px/1.2 var(--font-display); letter-spacing: -0.015em; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.grid4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.option {
+  position: relative; display: grid; gap: 12px; align-content: start; padding: 16px; border: 0; text-align: left; cursor: pointer;
+  background: var(--surface); color: var(--ink); border-radius: var(--r-window); box-shadow: var(--shadow-card);
+  transition: box-shadow 240ms var(--ease), transform 100ms var(--ease);
+}
+.option:hover { box-shadow: var(--shadow-card-hover); }
+.option:active { transform: scale(.985); }
+.option[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--accent), 0 24px 56px -36px rgba(var(--shadow-rgb), .42); }
+.option-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 24px; }
+.option-name { font: 600 17px/1.2 var(--font-display); letter-spacing: -0.01em; }
+.option-line { font-size: 14px; color: var(--muted); }
+.in-use { opacity: 0; transform: translateY(4px); transition: opacity 200ms var(--ease-fade), transform 300ms var(--ease); }
+.option[aria-pressed="true"] .in-use { opacity: 1; transform: none; }
+.in-use.chip { background: var(--accent); color: var(--on-accent); }
+
+/* Live miniatures: the real board markup rendered at 1200px and scaled to fit. */
+.mini { position: relative; overflow: hidden; border-radius: calc(var(--r-window) - 6px); background: var(--page); box-shadow: inset 0 0 0 1px var(--border); pointer-events: none; }
+.mini-inner { position: absolute; top: 0; left: 0; width: 1200px; padding: 28px 32px; transform-origin: 0 0; }
+.mini .hero { padding: 0 0 20px; animation: none; }
+.mini .greeting { font-size: 34px; margin-top: 0; }
+.mini .focus { font-size: 17px; }
+.mini .hero-row { margin-top: 20px; }
+.mini .stat .n { font-size: 36px; }
+
+/* Preset previews: eyebrow, two cards with source chips, one button, in that preset's own tokens. */
+.preset-mini { display: grid; gap: 8px; padding: 14px; border-radius: calc(var(--r-window) - 6px); background: var(--page); box-shadow: inset 0 0 0 1px var(--border); pointer-events: none; }
+.preset-mini .card { padding: 12px; gap: 10px; grid-template-columns: 18px minmax(0, 1fr); }
+.preset-mini .check { width: 18px; height: 18px; }
+span.check { display: block; }
+.preset-mini .check svg { inset: 1px; }
+.preset-mini .card-title { font-size: 14px; }
+.preset-mini .btn { justify-self: start; min-height: 32px; font-size: 13px; padding: 0 12px; }
+.preset-mini .mh { font: var(--display-weight) 20px/1.15 var(--font-display); letter-spacing: var(--display-track); }
+.fonts { font: 500 11px/1.4 var(--font-mono); letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.sw { display: flex; gap: 6px; flex-wrap: wrap; }
+.sw span { position: relative; width: 22px; height: 22px; border-radius: 6px; box-shadow: inset 0 0 0 1px rgba(var(--shadow-rgb), .14); }
+.sw span::after {
+  content: attr(data-hex); position: absolute; left: 50%; bottom: calc(100% + 6px); transform: translate(-50%, 3px); padding: 3px 6px; border-radius: 4px;
+  background: var(--raised); color: var(--ink); box-shadow: var(--shadow-lift); font: 500 10px/1.2 var(--font-mono); white-space: nowrap; opacity: 0; pointer-events: none;
+  transition: opacity 160ms var(--ease-fade), transform 200ms var(--ease);
+}
+.option:hover .sw span::after, .option:focus-visible .sw span::after { opacity: 1; transform: translate(-50%, 0); }
+.closing { margin-top: 48px; padding: 24px 0; border-top: 1px solid var(--border); display: grid; gap: 8px; }
+.closing p { font-size: 18px; max-width: 60ch; }
+.closing .pick { font-size: 15px; color: var(--muted); }
+.closing b { color: var(--ink); font-weight: 600; }
+
+@media (max-width: 1100px) { .grid4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 720px) { .grid2, .grid4 { grid-template-columns: minmax(0, 1fr); } .pick-head { padding: 16px 0 24px; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="pick-head">
+    <div>
+      <span class="eyebrow">Personal HQ · setup</span>
+      <h1>Pick how your HQ looks.</h1>
+      <p>Two taps: a layout, then a style. Every preview uses the same sample morning, so you can compare like for like.</p>
+    </div>
+    <div class="seg" role="group" aria-label="Theme">
+      <button data-theme-pick="light">Light</button><button data-theme-pick="dark">Dark</button><button data-theme-pick="system">System</button>
+    </div>
+  </header>
+  <div class="step"><span class="eyebrow">Step 1</span><h2>Layout</h2></div>
+  <div class="grid2" id="layouts"></div>
+  <div class="step" style="margin-top:48px"><span class="eyebrow">Step 2</span><h2>Style</h2></div>
+  <div class="grid4" id="styles"></div>
+  <footer class="closing">
+    <p>Tell Claude your pick, for example: Desk with Clearwater. You can change it any time.</p>
+    <p class="pick" id="yourPick" aria-live="polite"></p>
+  </footer>
+</div>
+<script type="application/json" id="picker-areas">__AREAS__</script>
+<script>
+(function () {
+  'use strict';
+  /* Sample data: the same invented owner, Jordan, as the board's demo mode, so the
+     miniatures show what a real morning looks like. Dates are relative to today. */
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function addDays(n) { var d = new Date(); d.setDate(d.getDate() + n); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  var MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  function shortDate(iso) { var d = new Date(iso + "T00:00:00"); return MON[d.getMonth()] + " " + d.getDate(); }
+  function daysUntil(iso) { if (!iso) return null; var d = new Date(iso + "T00:00:00"), t = new Date(); t.setHours(0, 0, 0, 0); return Math.round((d - t) / 86400000); }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+
+  var CARDS = [
+    ["Send Sam the Q3 store letter", "Stores", "this_week", "outlook", "Sam Ortiz · RE: Q3 store letter", -1, 0],
+    ["Confirm caterer headcount with Priya", "Fall Event", "inbox", "outlook", "Priya Shah · Fall Event catering", 0, 1],
+    ["Reply to Oak Park landlord on renewal timing", "Vendors", "this_week", "outlook", "Alan Brooks · Oak Park renewal", -2, 3],
+    ["Review: message asks for an unusual action", "", "inbox", "outlook", "Unknown sender · urgent request", 0, null, { sus: 1 }],
+    ["Share interview notes on store manager candidate", "People", "this_week", "meeting", "Hiring sync · candidate debrief", -2, 2],
+    ["Holiday staffing numbers", "People", "waiting_on", "teams", "Waiting on Dana Kim", -11, null, { wait: 9 }],
+    ["Pick the Fall Event venue layout", "Fall Event", "this_week", "meeting", "Event planning · Sep 30 meeting", -1, 5, { med: 1 }],
+    ["Call Marcus back about the Westfield delivery", "Vendors", "inbox", "phone", "Marcus Lee · phone call", 0, 2],
+    ["Display fixture quote", "Vendors", "waiting_on", "outlook", "Waiting on Reyna Display", -4, null, { wait: 3 }],
+    ["Draft talking points for Monday managers call", "Stores", "later", "brain", "Your notes · managers call", -16, null, { stale: 16 }],
+    ["Answer Lena about the window display photos", "Stores", "inbox", "pocket", "Store walk recording · Lena", -1, 4, { med: 1 }],
+    ["Approve October store hours", "Stores", "done", "outlook", "Sam Ortiz · October hours", -3, null]
+  ].map(function (r, i) {
+    return Object.assign({ id: "c" + i, title: r[0], area: r[1], column: r[2], src: r[3], ctx: r[4], added: addDays(r[5]), due: r[6] === null ? null : addDays(r[6]) }, r[7] || {});
+  });
+  // Setup fills these two tokens so the miniatures greet the owner and use their own areas;
+  // unfilled (a preview of the raw file), they fall back to the sample owner, Jordan.
+  var OWNER_TOKEN = "__OWNER__";
+  var SAMPLE_AREAS = ["Stores", "Fall Event", "People", "Vendors"];
+  var OWNER = OWNER_TOKEN.indexOf("__") === 0 ? "Jordan" : OWNER_TOKEN;
+  var AREAS = SAMPLE_AREAS;
+  try { var a = JSON.parse(document.getElementById("picker-areas").textContent); if (Array.isArray(a) && a.length) AREAS = a.slice(0, 6).map(String); } catch (e) { /* unfilled token */ }
+  // Sample cards keep their titles but move to the owner's areas, by position.
+  CARDS.forEach(function (c) { var i = SAMPLE_AREAS.indexOf(c.area); if (i >= 0) c.area = AREAS[i % AREAS.length]; });
+  var SRC = { outlook: "Outlook", teams: "Teams", meeting: "Meeting", brain: "Notes", phone: "Call", pocket: "Pocket" };
+  var P = 'stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"';
+  var GLYPH = {
+    outlook: '<rect x="3.5" y="5.5" width="17" height="13" rx="2" ' + P + '/><path d="M4.5 7.5l7.5 5.5 7.5-5.5" ' + P + '/>',
+    teams: '<path d="M5 5h14a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5h-8.5L6 19.5V16H5a1.5 1.5 0 0 1-1.5-1.5v-8A1.5 1.5 0 0 1 5 5z" ' + P + '/>',
+    meeting: '<rect x="3.5" y="5" width="17" height="15" rx="2" ' + P + '/><path d="M3.5 10h17M8 3v4M16 3v4" ' + P + '/>',
+    brain: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z" fill="currentColor"/>',
+    phone: '<path d="M6.5 3.5h3L11 7.5 9 9a11 11 0 0 0 6 6l1.5-2 4 1.5v3a2 2 0 0 1-2 2A15.5 15.5 0 0 1 4.5 5.5a2 2 0 0 1 2-2z" ' + P + '/>',
+    pocket: '<rect x="7" y="3" width="10" height="18" rx="3" ' + P + '/><path d="M10 10v4M12 8.5v7M14 10v4" ' + P + '/>'
+  };
+  var CHECK = '<span class="check" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.2 4.2L19 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></span>';
+
+  function status(c) {
+    var du = daysUntil(c.due);
+    if (c.column === "done") return '<span class="chip chip-ok"><span class="t">Done</span></span>';
+    if (c.sus) return '<span class="chip chip-warn"><span class="dot"></span><span class="t">Review</span></span>';
+    if (c.wait) return '<span class="chip' + (c.wait > 7 ? ' chip-warn"><span class="dot"></span>' : '">') + '<span class="t">Waiting ' + c.wait + "d</span></span>";
+    if (du === 0) return '<span class="chip chip-accent"><span class="dot"></span><span class="t">Due today</span></span>';
+    if (c.stale) return '<span class="chip chip-warn"><span class="dot"></span><span class="t">Stale ' + c.stale + "d</span></span>";
+    return "";
+  }
+  function card(c, now) {
+    var du = daysUntil(c.due);
+    var due = du === 1 ? "TMRW" : (du > 1 ? shortDate(c.due).toUpperCase() : "");
+    return '<article class="card' + (c.column === "done" ? " is-done" : "") + (c.id === now ? " is-now" : "") + '"' + (c.med ? ' data-conf="medium"' : "") + (c.sus ? " data-sus" : "") + ">" + CHECK +
+      '<div><h3 class="card-title"><span>' + esc(c.title) + '</span></h3><p class="card-ctx">' + esc(c.ctx) + '</p><div class="card-foot">' +
+      '<span class="chip src"><svg class="icon-sm" viewBox="0 0 24 24">' + GLYPH[c.src] + '</svg><span class="t">' + SRC[c.src] + " · " + shortDate(c.added).toUpperCase() + "</span></span>" +
+      status(c) + (due ? '<span class="due">' + due + "</span>" : "") + "</div></div></article>";
+  }
+  function head(name, n) { return '<div class="section-head"><h2>' + name + '</h2><span class="eyebrow">' + n + "</span></div>"; }
+  function stack(list, now) { return '<div class="stack">' + list.map(function (c) { return card(c, now); }).join("") + "</div>"; }
+  var open = CARDS.filter(function (c) { return c.column !== "done"; });
+  var NOW = "c0";
+
+  var LAYOUTS = {
+    desk: function () {
+      var groups = AREAS.map(function (a) { return [a, open.filter(function (c) { return c.area === a; })]; });
+      return '<div class="desk" style="grid-template-columns:repeat(4,minmax(0,1fr))">' + groups.map(function (g) { return "<section>" + head(g[0], g[1].length) + stack(g[1], NOW) + "</section>"; }).join("") + "</div>";
+    },
+    columns: function () {
+      return '<div class="cols">' + [["inbox", "Inbox"], ["this_week", "This week"], ["waiting_on", "Waiting on"], ["later", "Later"], ["done", "Done"]].map(function (k) {
+        var l = CARDS.filter(function (c) { return c.column === k[0]; }); return "<section>" + head(k[1], l.length) + stack(l, NOW) + "</section>";
+      }).join("") + "</div>";
+    },
+    day: function () {
+      var today = open.filter(function (c) { return c.id === NOW || c.sus; });
+      var week = open.filter(function (c) { return today.indexOf(c) < 0 && c.column !== "waiting_on" && c.column !== "later"; });
+      var waiting = open.filter(function (c) { return c.column === "waiting_on"; });
+      return '<div class="day">' + [["Today", today], ["This week", week], ["Waiting on", waiting]].map(function (g) {
+        return '<section><span class="node"></span>' + head(g[0], g[1].length) + stack(g[1], NOW) + "</section>";
+      }).join("") + "</div>";
+    },
+    list: function () {
+      var top = [CARDS[0], CARDS[1], CARDS[4]];
+      return '<div class="list"><section>' + head("Start here", 3) + '<div class="top3">' + top.map(function (c, i) {
+        return '<div class="rankrow"><span class="rank">' + (i + 1) + "</span>" + card(c, NOW) + "</div>";
+      }).join("") + "</div></section><section>" + head("Everything else", 6) + stack([CARDS[3], CARDS[7], CARDS[2], CARDS[6]], NOW) + "</section></div>";
+    }
+  };
+  var LAYOUT_COPY = [
+    ["desk", "Desk", "Your areas side by side. For people who think in stores, teams, or projects."],
+    ["columns", "Columns", "Inbox, This week, Waiting on, Later, Done. For people who like to move things along."],
+    ["day", "Day", "One calm line from today to later. For a quick read with your coffee."],
+    ["list", "List", "Your top three, then everything else. For phones and short mornings."]
+  ];
+  var STYLES = [
+    ["clearwater", "Clearwater", "Cool and precise. The Corridor default.", "Familjen Grotesk · Spline Sans Mono",
+      { light: ["#f6fafc", "#ffffff", "#123049", "#4a6d81", "#0b7db8", "#77c9db"], dark: ["#0a2032", "#0c2537", "#e6f0f6", "#a9c8d8", "#3fa3d8", "#77c9db"] }],
+    ["morning-light", "Morning Light", "Softer and rounder, with a little glow. Feels like a home screen.", "Outfit · Spline Sans Mono",
+      { light: ["#f7fafc", "#ffffff", "#123049", "#4a6d81", "#0b7db8", "#bfe4f2"], dark: ["#0a2032", "#0c2537", "#f2f8fb", "#9dbdd0", "#77c9db", "#4d9cc4"] }],
+    ["briefing", "Briefing", "Serif headlines and boardroom calm. For people who read memos.", "Source Serif 4 · IBM Plex Sans",
+      { light: ["#f6fafc", "#ffffff", "#123049", "#4a6d81", "#053d5b", "#77c9db"], dark: ["#0e1a22", "#13232d", "#e8eef2", "#9fb2bf", "#77c9db", "#3f7f93"] }],
+    ["graphite", "Graphite", "Neutral gray, so color stays out of the way. For a tool that disappears.", "Geist · Geist Mono",
+      { light: ["#f1f2f3", "#ffffff", "#1f2124", "#62656b", "#0a6fd6", "#e9f3ff"], dark: ["#111214", "#17181b", "#ededee", "#a0a3a8", "#4c9dff", "#1b2a3d"] }]
+  ];
+  var pick = { layout: "desk", style: "clearwater" };
+
+  function isDark() {
+    var t = document.documentElement.getAttribute("data-theme");
+    return t === "dark" || (!t && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
+  }
+  function miniHeader() {
+    return '<section class="hero"><span class="eyebrow">Thursday · Oct 1</span><h1 class="greeting" style="margin-top:8px">Good morning, ' + esc(OWNER) + '.</h1>' +
+      '<p class="focus">Three things need you today: Sam’s Q3 letter, Priya’s catering headcount, and one message that needs a careful look.</p>' +
+      '<div class="hero-row"><div class="stats"><div class="stat"><span class="n">8</span><span class="eyebrow">You owe</span></div><div class="stat"><span class="n">2</span><span class="eyebrow">Waiting on</span></div><div class="stat"><span class="n">1</span><span class="eyebrow">Due today</span></div></div>' +
+      '<div class="fresh"><p>Updated 7:02 AM by your morning librarian</p></div></div></section>';
+  }
+  function render() {
+    document.getElementById("layouts").innerHTML = LAYOUT_COPY.map(function (l) {
+      return '<div class="option" role="button" tabindex="0" data-layout-pick="' + l[0] + '" aria-pressed="' + (pick.layout === l[0]) + '">' +
+        '<div class="option-top"><span class="option-name">' + l[1] + '</span><span class="chip in-use"><span class="t">Your pick</span></span></div>' +
+        '<p class="option-line">' + l[2] + "</p>" +
+        '<div class="mini" data-mini><div class="mini-inner">' + miniHeader() + LAYOUTS[l[0]]() + "</div></div></div>";
+    }).join("");
+    renderStyles();
+    fit();
+  }
+  function renderStyles() {
+    var dark = isDark();
+    document.getElementById("styles").innerHTML = STYLES.map(function (s) {
+      var hex = s[4][dark ? "dark" : "light"];
+      return '<div class="option scope" role="button" tabindex="0" data-style="' + s[0] + '" data-style-pick="' + s[0] + '" aria-pressed="' + (pick.style === s[0]) + '">' +
+        '<div class="option-top"><span class="option-name">' + s[1] + '</span><span class="chip in-use"><span class="t">In use</span></span></div>' +
+        '<p class="option-line">' + s[2] + "</p>" +
+        '<div class="preset-mini"><span class="eyebrow">Today · 3</span><span class="mh">Good morning, ' + esc(OWNER) + '.</span>' + card(CARDS[0], "c0") + card(CARDS[4], "") +
+        '<span class="btn btn-primary">Add</span></div>' +
+        '<span class="fonts">' + s[3] + '</span><div class="sw">' + hex.map(function (h) { return '<span style="background:' + h + '" data-hex="' + h + '"></span>'; }).join("") + "</div></div>";
+    }).join("");
+  }
+  // Scale each 1200px board to its frame. Height shows the top 760px of the board.
+  function fit() {
+    document.querySelectorAll("[data-mini]").forEach(function (frame) {
+      var inner = frame.firstChild, k = frame.clientWidth / 1200;
+      inner.style.transform = "scale(" + k + ")";
+      frame.style.height = Math.round(Math.min(inner.offsetHeight, 760) * k) + "px";
+    });
+  }
+  function closing() {
+    var l = LAYOUT_COPY.filter(function (x) { return x[0] === pick.layout; })[0][1];
+    var s = STYLES.filter(function (x) { return x[0] === pick.style; })[0][1];
+    document.getElementById("yourPick").innerHTML = "Showing <b>" + l + "</b> with <b>" + s + "</b>.";
+  }
+  function restyle(fn) {
+    var root = document.documentElement, reduced = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!reduced) root.classList.add("is-restyling");
+    fn();
+    setTimeout(function () { root.classList.remove("is-restyling"); fit(); }, 300);
+  }
+
+  document.addEventListener("click", function (e) {
+    var l = e.target.closest("[data-layout-pick]"), s = e.target.closest("[data-style-pick]"), t = e.target.closest("[data-theme-pick]");
+    if (l) {
+      pick.layout = l.getAttribute("data-layout-pick");
+      document.querySelectorAll("[data-layout-pick]").forEach(function (b) { b.setAttribute("aria-pressed", String(b === l)); });
+    }
+    if (s) {
+      pick.style = s.getAttribute("data-style-pick");
+      document.querySelectorAll("[data-style-pick]").forEach(function (b) { b.setAttribute("aria-pressed", String(b === s)); });
+      // The delight moment: the whole page, every miniature included, changes clothes in place.
+      restyle(function () { document.documentElement.setAttribute("data-style", pick.style); });
+    }
+    if (t) {
+      var v = t.getAttribute("data-theme-pick");
+      document.querySelectorAll("[data-theme-pick]").forEach(function (b) { b.setAttribute("aria-pressed", String(b === t)); });
+      restyle(function () { if (v === "system") document.documentElement.removeAttribute("data-theme"); else document.documentElement.setAttribute("data-theme", v); renderStyles(); });
+    }
+    if (l || s) closing();
+  });
+  // Options are div role=button because each one contains a whole board; give them the keyboard behavior of a button.
+  document.addEventListener("keydown", function (e) {
+    if ((e.key === "Enter" || e.key === " ") && e.target.classList && e.target.classList.contains("option")) { e.preventDefault(); e.target.click(); }
+  });
+  window.addEventListener("resize", fit);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+  if (window.matchMedia) matchMedia("(prefers-color-scheme: dark)").addEventListener("change", renderStyles);
+  // Preview options for screenshots: #theme=dark&style=briefing&layout=columns
+  var q = new URLSearchParams(location.hash.slice(1));
+  if (q.get("theme")) document.documentElement.setAttribute("data-theme", q.get("theme"));
+  if (q.get("style")) { pick.style = q.get("style"); document.documentElement.setAttribute("data-style", pick.style); }
+  if (q.get("layout")) pick.layout = q.get("layout");
+  document.querySelectorAll("[data-theme-pick]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-theme-pick") === (q.get("theme") || "system"))); });
+  render(); closing();
+})();
+</script>
+</body>
+</html>

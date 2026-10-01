@@ -1,0 +1,2084 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__OWNER__'s HQ</title>
+<!--
+  Personal HQ board template (personal-hq skill).
+  The skill fills four double-underscore tokens and nothing else:
+    OWNER  first name, for the title and greeting
+    LAYOUT desk | columns | day | list
+    STYLE  clearwater | morning-light | briefing | graphite
+    AREAS  JSON array of the owner's areas, in the script tag with id "hq-areas"
+  Everything else comes from the artifact db (todos, drafts, prompts, meta/*), see SPEC.md.
+  Open the file with #demo (or anywhere the db is unavailable) to see invented sample data.
+-->
+<script>
+  // Stamp layout, style and theme on the root before first paint so nothing flashes.
+  // A viewer's own choice (settings menu) lives in localStorage and wins only while the
+  // board's defaults are unchanged; when Claude changes the defaults, the new ones apply.
+  (function () {
+    var root = document.documentElement;
+    var L = "__LAYOUT__", S = "__STYLE__";
+    if (L.indexOf("__") === 0) L = "desk";
+    if (S.indexOf("__") === 0) S = "clearwater";
+    var p = null;
+    try { p = JSON.parse(localStorage.getItem("hq.prefs") || "null"); } catch (e) {}
+    if (p && p.base === L + "/" + S) { L = p.layout || L; S = p.style || S; }
+    if (p && p.theme && p.theme !== "system") root.setAttribute("data-theme", p.theme);
+    root.setAttribute("data-layout", L);
+    root.setAttribute("data-style", S);
+  })();
+</script>
+<script type="application/json" id="hq-areas">__AREAS__</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500&family=Outfit:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   Tokens. Four presets share one token vocabulary so the board CSS
+   never branches on style. Hex values come from design/DESIGN-BAR.md
+   section 6; no color appears outside these blocks except rgba() of
+   --shadow-rgb, which is the preset's ink.
+   ============================================================ */
+:root {
+  color-scheme: light;
+  --page: #f6fafc; --surface: #ffffff; --raised: #ffffff; --chip: #eaf4f9;
+  --ink: #123049; --muted: #4a6d81; --accent: #0b7db8; --accent-hover: #0a70a5; --on-accent: #ffffff;
+  --soft: #77c9db; --border: #dceaf2; --line-strong: #c2dae7; --hover: #eef6fa; --track: #e6eff5;
+  --ok: #17703f; --ok-tint: #e6f4ec; --warn: #8f5a17; --warn-dot: #b4762a; --warn-tint: #f5ead9;
+  --shadow-rgb: 18, 48, 73;
+  --font-ui: 'Familjen Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-display: var(--font-ui);
+  --font-mono: 'Spline Sans Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  --display-weight: 600; --display-track: -0.022em;
+  --r-card: 10px; --r-control: 8px; --r-window: 14px;
+  --ease: cubic-bezier(.23, 1, .32, 1);
+  --ease-io: cubic-bezier(.77, 0, .175, 1);
+  --ease-breathe: cubic-bezier(.6, 0, .4, 1);
+  --ease-fade: cubic-bezier(.45, 0, .55, 1);
+}
+:root[data-style="morning-light"] {
+  --page: #f7fafc; --chip: #eef6fb; --soft: #bfe4f2; --border: #dbe8f0; --line-strong: #cfe3ef; --hover: #eef6fb;
+  --font-ui: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --display-weight: 500; --display-track: -0.034em;
+  --r-card: 16px; --r-control: 999px; --r-window: 22px;
+}
+:root[data-style="briefing"] {
+  --accent: #053d5b; --accent-hover: #0a4f74;
+  --font-ui: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-display: 'Source Serif 4', Georgia, serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  --display-track: -0.012em; --r-card: 6px; --r-control: 6px; --r-window: 8px; --track: var(--chip);
+}
+:root[data-style="graphite"] {
+  --page: #f1f2f3; --chip: #f2f2f3; --ink: #1f2124; --muted: #62656b; --accent: #0a6fd6; --accent-hover: #085fb8;
+  --soft: #e9f3ff; --border: #ecedef; --line-strong: #e0e2e5; --hover: #f2f2f3; --track: #ecedef;
+  --shadow-rgb: 31, 33, 36;
+  --font-ui: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  --display-track: -0.02em; --r-card: 8px; --r-control: 6px; --r-window: 10px;
+}
+/* Dark tokens: written twice on purpose. Once for "system" (media query, unless the viewer
+   forced light) and once for a forced data-theme="dark". Keep the two copies identical. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0a2032; --surface: #0c2537; --raised: #11304a; --chip: #143a57;
+    --ink: #e6f0f6; --muted: #a9c8d8; --accent: #3fa3d8; --accent-hover: #5ab3e2; --on-accent: #0a2032;
+    --soft: #77c9db; --border: #1d3b52; --line-strong: #2a4d66; --hover: #11304a; --track: #0c2537;
+    --ok: #5cc08a; --ok-tint: rgba(92, 192, 138, .14); --warn: #e2b26a; --warn-dot: #e2b26a; --warn-tint: rgba(226, 178, 106, .14);
+    --shadow-rgb: 4, 16, 26;
+  }
+  :root:not([data-theme="light"])[data-style="morning-light"] { --ink: #f2f8fb; --muted: #9dbdd0; --accent: #77c9db; --accent-hover: #9ad0e9; --soft: #4d9cc4; }
+  :root:not([data-theme="light"])[data-style="briefing"] {
+    --page: #0e1a22; --surface: #13232d; --raised: #1b3140; --chip: #1b3140; --ink: #e8eef2; --muted: #9fb2bf;
+    --accent: #77c9db; --accent-hover: #9adbe8; --on-accent: #13232d; --soft: #3f7f93; --border: #22394a; --line-strong: #2e4a5e; --hover: #1b3140; --track: #13232d;
+  }
+  :root:not([data-theme="light"])[data-style="graphite"] {
+    --page: #111214; --surface: #17181b; --raised: #222428; --chip: #222428; --ink: #ededee; --muted: #a0a3a8;
+    --accent: #4c9dff; --accent-hover: #6eb0ff; --on-accent: #111214; --soft: #1b2a3d; --border: #26282c; --line-strong: #33363b; --hover: #222428; --track: #17181b;
+    --shadow-rgb: 0, 0, 0;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0a2032; --surface: #0c2537; --raised: #11304a; --chip: #143a57;
+  --ink: #e6f0f6; --muted: #a9c8d8; --accent: #3fa3d8; --accent-hover: #5ab3e2; --on-accent: #0a2032;
+  --soft: #77c9db; --border: #1d3b52; --line-strong: #2a4d66; --hover: #11304a; --track: #0c2537;
+  --ok: #5cc08a; --ok-tint: rgba(92, 192, 138, .14); --warn: #e2b26a; --warn-dot: #e2b26a; --warn-tint: rgba(226, 178, 106, .14);
+  --shadow-rgb: 4, 16, 26;
+}
+:root[data-theme="dark"][data-style="morning-light"] { --ink: #f2f8fb; --muted: #9dbdd0; --accent: #77c9db; --accent-hover: #9ad0e9; --soft: #4d9cc4; }
+:root[data-theme="dark"][data-style="briefing"] {
+  --page: #0e1a22; --surface: #13232d; --raised: #1b3140; --chip: #1b3140; --ink: #e8eef2; --muted: #9fb2bf;
+  --accent: #77c9db; --accent-hover: #9adbe8; --on-accent: #13232d; --soft: #3f7f93; --border: #22394a; --line-strong: #2e4a5e; --hover: #1b3140; --track: #13232d;
+}
+:root[data-theme="dark"][data-style="graphite"] {
+  --page: #111214; --surface: #17181b; --raised: #222428; --chip: #222428; --ink: #ededee; --muted: #a0a3a8;
+  --accent: #4c9dff; --accent-hover: #6eb0ff; --on-accent: #111214; --soft: #1b2a3d; --border: #26282c; --line-strong: #33363b; --hover: #222428; --track: #17181b;
+  --shadow-rgb: 0, 0, 0;
+}
+:root {
+  --shadow-card: 0 0 0 1px var(--border), 0 1px 2px rgba(var(--shadow-rgb), .05), 0 2px 6px rgba(var(--shadow-rgb), .04);
+  --shadow-card-hover: 0 0 0 1px color-mix(in srgb, var(--accent) 32%, var(--border)), 0 1px 2px rgba(var(--shadow-rgb), .05), 0 14px 32px -20px rgba(var(--shadow-rgb), .38);
+  --shadow-btn: 0 0 0 1px var(--line-strong), 0 1px 2px rgba(var(--shadow-rgb), .06);
+  --shadow-lift: 0 0 0 1px var(--border), 0 24px 56px -36px rgba(var(--shadow-rgb), .42);
+  --shadow-cta: 0 6px 22px -6px color-mix(in srgb, var(--accent) 50%, transparent);
+  --shadow-cta-hover: 0 12px 30px -8px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+/* Briefing draws rules, not shadows. */
+:root[data-style="briefing"] { --shadow-card: 0 0 0 1px var(--border); --shadow-card-hover: 0 0 0 1px color-mix(in srgb, var(--accent) 40%, var(--border)); }
+
+/* During a style or theme swap only, every color crossfades over 240ms. Transitions are
+   not left on permanently: that would make every hover and re-render pay for them. */
+:root.is-restyling *, :root.is-restyling *::before, :root.is-restyling *::after {
+  transition: background-color 240ms var(--ease-fade), color 240ms var(--ease-fade), border-color 240ms var(--ease-fade), box-shadow 240ms var(--ease-fade), outline-color 240ms var(--ease-fade) !important;
+}
+
+/* ============================================================ Base */
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; background: var(--page); }
+body {
+  margin: 0; min-height: 100vh; background: var(--page); color: var(--ink);
+  font: 400 15px/1.5 var(--font-ui); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+}
+::selection { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--ink); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+a { color: var(--accent); text-underline-offset: 3px; text-decoration-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+h1, h2, h3, p { margin: 0; }
+h1, h2 { text-wrap: balance; }
+p { text-wrap: pretty; }
+.num { font-variant-numeric: tabular-nums; }
+.icon { width: 16px; height: 16px; flex: none; display: block; }
+.icon-sm { width: 12px; height: 12px; flex: none; display: block; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* Morning Light's one decorative element: a soft glow top right, the website hero atmosphere. */
+:root[data-style="morning-light"] body::before {
+  content: ""; position: fixed; z-index: 0; pointer-events: none; top: -30vh; right: -20vw; width: 80vw; height: 90vh;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--accent-hover) 22%, transparent), transparent);
+}
+
+.app { position: relative; z-index: 1; max-width: 1376px; margin: 0 auto; padding: 32px 32px 64px; }
+
+/* Mono is a labeling texture: eyebrows, chips, counts, dates. Never sentences. */
+.eyebrow { font: 500 11px/1.4 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-height: 22px; padding: 3px 9px; border-radius: 999px;
+  background: var(--chip); color: var(--muted); font: 500 11px/1.3 var(--font-mono); letter-spacing: .04em; text-transform: uppercase;
+  white-space: nowrap; text-decoration: none;
+}
+.chip > .t { overflow: hidden; text-overflow: ellipsis; }
+.chip .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none; }
+.chip-accent { background: var(--surface); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line-strong); }
+.chip-accent .dot { background: var(--accent); }
+.chip-warn { background: var(--warn-tint); color: var(--warn); }
+.chip-warn .dot { background: var(--warn-dot); }
+.chip-ok { background: var(--ok-tint); color: var(--ok); }
+
+/* ============================================================ Buttons */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 0 16px;
+  border: 0; border-radius: var(--r-control); background: var(--surface); color: var(--ink); box-shadow: var(--shadow-btn);
+  font: 500 14px/1 var(--font-ui); text-decoration: none; white-space: nowrap;
+  transition: transform 200ms var(--ease), box-shadow 200ms var(--ease), background-color 200ms var(--ease), color 200ms var(--ease);
+}
+.btn:hover { background: var(--hover); }
+.btn:active { transform: scale(.97); transition-duration: 100ms; }
+.btn-primary { background: var(--accent); color: var(--on-accent); box-shadow: var(--shadow-cta); }
+.btn-primary:hover { background: var(--accent-hover); transform: translateY(-2px); box-shadow: var(--shadow-cta-hover); }
+.btn-primary:active { transform: scale(.97); }
+.btn-quiet { background: transparent; box-shadow: none; color: var(--muted); padding: 0 12px; }
+.btn-quiet:hover { background: var(--hover); color: var(--ink); }
+.btn[aria-disabled="true"] { background: transparent; color: var(--muted); box-shadow: inset 0 0 0 1px var(--border); cursor: not-allowed; transform: none; }
+.btn .arrow { transition: transform 200ms var(--ease); }
+.btn:hover .arrow { transform: translate(1px, -1px); }
+
+/* Segmented control: tabs, layout and theme switches. Track plus a raised active thumb. */
+.seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: calc(var(--r-control) + 3px); background: var(--track); box-shadow: inset 0 0 0 1px var(--border); }
+:root[data-style="morning-light"] .seg { border-radius: 999px; }
+.seg button {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border: 0; border-radius: var(--r-control);
+  background: transparent; color: var(--muted); font: 500 14px/1 var(--font-ui);
+  transition: background-color 160ms var(--ease), color 160ms var(--ease), box-shadow 160ms var(--ease), transform 100ms var(--ease);
+}
+.seg button:hover { color: var(--ink); }
+.seg button:active { transform: scale(.97); }
+.seg button[aria-selected="true"], .seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(var(--shadow-rgb), .12), 0 0 0 1px var(--border); }
+.tabs button[aria-selected="true"] { background: var(--accent); color: var(--on-accent); box-shadow: none; }
+.tabs .count { font: 500 11px/1 var(--font-mono); opacity: .8; font-variant-numeric: tabular-nums; }
+
+/* ============================================================ Header */
+.top { position: relative; z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 40px; }
+.top-right { display: flex; align-items: center; gap: 8px; }
+.hero { padding: 24px 0 32px; animation: fade-in 400ms var(--ease) both; }
+.greeting {
+  font: var(--display-weight) clamp(30px, 3.4vw, 44px)/1.08 var(--font-display); letter-spacing: var(--display-track);
+  margin-top: 12px;
+}
+.focus { margin-top: 12px; max-width: 64ch; font-size: clamp(17px, 1.5vw, 20px); line-height: 1.45; color: var(--ink); }
+.hero-row { display: grid; grid-template-columns: auto 1fr; gap: 48px; align-items: end; margin-top: 32px; }
+.stats { display: flex; gap: 40px; }
+.stat .n { display: block; font: 400 44px/1 var(--font-display); letter-spacing: -0.026em; font-variant-numeric: tabular-nums; }
+:root[data-style="briefing"] .stat .n { font-family: var(--font-ui); font-weight: 400; }
+.stat .eyebrow { display: block; margin-top: 8px; }
+.fresh { justify-self: end; text-align: right; display: grid; gap: 8px; justify-items: end; }
+.fresh p { font-size: 13px; color: var(--muted); }
+.sweeping { display: inline-flex; align-items: center; gap: 8px; }
+.sources { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; align-items: center; }
+.sources .eyebrow { margin-right: 4px; }
+
+/* ============================================================ Toolbar */
+.bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding-bottom: 24px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+.bar-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.nudge { display: flex; align-items: baseline; gap: 10px; margin: -8px 0 24px; font-size: 14px; color: var(--muted); }
+.nudge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--warn-dot); flex: none; transform: translateY(-2px); }
+.nudge button { border: 0; background: none; padding: 0; color: var(--ink); text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px; }
+.nudge button:hover { text-decoration-color: var(--accent); }
+
+/* ============================================================ Cards
+   Fixed anatomy (rule 7): title, one muted context line, a chip row with the
+   due date right-aligned. Nothing else lives on the face; detail opens on tap. */
+.stack { display: grid; gap: 8px; align-content: start; }
+.card {
+  position: relative; display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 12px; padding: 14px 16px 14px 14px;
+  background: var(--surface); border-radius: var(--r-card); box-shadow: var(--shadow-card); cursor: pointer;
+  transform-origin: 50% 100%;
+  transition: box-shadow 240ms var(--ease), transform 100ms var(--ease), opacity 200ms var(--ease-fade);
+}
+.card:hover { box-shadow: var(--shadow-card-hover); }
+.card:active { transform: scale(.97); }
+.card:has(.check:active), .card:has(.src:active) { transform: none; }
+.card-title { font-size: 15px; font-weight: 600; line-height: 1.35; letter-spacing: -0.005em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-wrap: pretty; }
+.card-title span {
+  background: linear-gradient(var(--soft), var(--soft)) no-repeat 0 58% / 0% 1.5px; -webkit-box-decoration-break: clone; box-decoration-break: clone;
+  transition: background-size 260ms var(--ease-io), color 260ms var(--ease);
+}
+.card-ctx { margin-top: 2px; font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; min-width: 0; }
+.card-foot .due { margin-left: auto; padding-left: 8px; font: 500 11px/1 var(--font-mono); letter-spacing: .04em; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.src { flex: 0 1 auto; min-width: 0; position: relative; transition: background-color 200ms var(--ease), color 200ms var(--ease); }
+a.src:hover { background: var(--hover); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line-strong); }
+/* Medium confidence: the card reads as tentative, not as a different kind of thing. */
+.card[data-conf="medium"] { box-shadow: 0 1px 2px rgba(var(--shadow-rgb), .04); outline: 1px dashed var(--line-strong); outline-offset: -1px; }
+.card[data-conf="medium"]:hover { outline-color: color-mix(in srgb, var(--accent) 45%, var(--line-strong)); }
+.card[data-conf="medium"] .card-title { font-weight: 500; }
+/* Suspicious: calm amber ring and a Review chip. Never red, never an alarm. */
+.card[data-sus] { box-shadow: 0 0 0 1px color-mix(in srgb, var(--warn-dot) 50%, var(--border)), 0 1px 2px rgba(var(--shadow-rgb), .05); }
+.card.is-done .card-title { font-weight: 500; color: var(--muted); }
+.card.is-done .card-title span, .card.is-completing .card-title span { background-size: 100% 1.5px; }
+.card.is-completing .card-title span { color: var(--muted); }
+
+/* The check: fills accent, then a 1.8px tick draws itself on the io curve. */
+.check {
+  position: relative; width: 22px; height: 22px; margin-top: 0; padding: 0; border: 0; border-radius: 6px;
+  background: var(--surface); box-shadow: inset 0 0 0 1.5px var(--line-strong); color: var(--on-accent);
+  transition: background-color 200ms var(--ease), box-shadow 200ms var(--ease), transform 100ms var(--ease);
+}
+:root[data-style="morning-light"] .check { border-radius: 50%; }
+.check::before { content: ""; position: absolute; inset: -9px; }
+.check:hover { box-shadow: inset 0 0 0 1.5px var(--accent); }
+.check:active { transform: scale(.9); }
+.check svg { position: absolute; inset: 3px; width: 16px; height: 16px; }
+.check path { stroke-dasharray: 22; stroke-dashoffset: 22; transition: stroke-dashoffset 240ms var(--ease-io) 60ms; }
+.is-done .check, .is-completing .check { background: var(--accent); box-shadow: none; }
+.is-done .check path, .is-completing .check path { stroke-dashoffset: 0; }
+
+/* The "now" card: the single most urgent thing. Accent ring, and on fine pointers the
+   website's cursor-lit border (a 190px glow masked down to a 1.5px band). One card only. */
+.card.is-now { box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 55%, var(--border)), 0 24px 56px -36px rgba(var(--shadow-rgb), .42); }
+@media (hover: hover) and (pointer: fine) {
+  .card.is-now::after {
+    content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1.5px; pointer-events: none; opacity: 0;
+    background: radial-gradient(190px circle at var(--mx, 50%) var(--my, 50%), color-mix(in srgb, var(--accent) 55%, transparent), color-mix(in srgb, var(--soft) 18%, transparent) 55%, transparent 80%);
+    -webkit-mask: linear-gradient(var(--ink) 0 0) content-box, linear-gradient(var(--ink) 0 0); -webkit-mask-composite: xor; mask-composite: exclude;
+    transition: opacity 300ms var(--ease);
+  }
+  .card.is-now:hover::after { opacity: 1; }
+  /* Source chip tooltip: exact origin after 300ms; once one has shown, the rest show at once. */
+  .src[data-tip]::after {
+    content: attr(data-tip); position: absolute; left: 0; bottom: calc(100% + 8px); z-index: 5; max-width: 340px; width: max-content;
+    padding: 6px 10px; border-radius: 6px; background: var(--raised); color: var(--ink); box-shadow: var(--shadow-lift);
+    font: 500 11px/1.4 var(--font-mono); letter-spacing: .04em; white-space: normal; pointer-events: none;
+    opacity: 0; transform: translateY(3px); transition: opacity 160ms var(--ease-fade), transform 160ms var(--ease);
+  }
+  .src[data-tip]:hover::after { opacity: 1; transform: none; transition: opacity 240ms var(--ease) 300ms, transform 300ms var(--ease) 300ms; }
+  .tips-warm .src[data-tip]:hover::after { transition-delay: 0ms; }
+}
+
+/* Cards land one by one: rise 5px from .97 (chips-lab cascade), 70ms stagger. Only first
+   render and newly arrived cards animate; a re-render never replays it. */
+@keyframes rise { from { opacity: 0; transform: translateY(5px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+.is-new { animation: rise 460ms var(--ease) both; animation-delay: calc(var(--i, 0) * 70ms); }
+
+/* ============================================================ Layout: desk (areas) */
+.section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 0 2px 12px; }
+.section-head h2 { font: 600 15px/1.3 var(--font-display); letter-spacing: -0.01em; }
+:root[data-style="briefing"] .section-head h2 { font-size: 17px; }
+.desk { display: grid; grid-template-columns: repeat(auto-fill, minmax(288px, 1fr)); gap: 32px 24px; align-items: start; }
+.desk > section { min-width: 0; }
+.drop-on { border-radius: var(--r-card); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent); background: color-mix(in srgb, var(--accent) 4%, transparent); }
+
+/* ============================================================ Layout: columns (status) */
+.cols { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: stretch; }
+.cols > section { min-width: 0; padding: 0 16px; border-left: 1px solid var(--border); min-height: 240px; }
+.cols > section:first-child { padding-left: 0; border-left: 0; }
+.cols > section:last-child { padding-right: 0; }
+.cols .card { cursor: grab; }
+
+/* ============================================================ Layout: day (vertical spine) */
+.day { max-width: 760px; }
+.day > section { position: relative; padding: 0 0 32px 32px; }
+.day > section::before {
+  content: ""; position: absolute; left: 6px; top: 18px; bottom: 0; width: 2px;
+  background: radial-gradient(circle, var(--soft) 1px, transparent 1.4px) 0 0 / 2px 7px repeat-y;
+}
+.day > section:last-child::before { display: none; }
+.day .node { position: absolute; left: 1px; top: 4px; width: 12px; height: 12px; border-radius: 50%; background: var(--page); box-shadow: inset 0 0 0 2px var(--line-strong); }
+.day > section:first-child .node { box-shadow: inset 0 0 0 2px var(--accent); }
+.day > section:first-child .node::after { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: var(--accent); }
+
+/* ============================================================ Layout: list (one calm column) */
+.list { max-width: 720px; }
+.top3 { display: grid; gap: 12px; margin-bottom: 40px; }
+.top3 .rankrow { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 8px; align-items: start; }
+.top3 .rank { font: 400 32px/1 var(--font-display); letter-spacing: -0.026em; color: var(--muted); padding-top: 10px; font-variant-numeric: tabular-nums; }
+.list > section { margin-bottom: 32px; }
+
+/* Empty: the orb, still, plus one mono line. */
+.empty { display: flex; align-items: center; gap: 10px; padding: 16px 2px; }
+.empty-hero { flex-direction: column; justify-content: center; text-align: center; gap: 16px; padding: 64px 16px; }
+.orb { color: var(--muted); }
+.orb.live { color: var(--accent); }
+
+/* Collapsed extras: done this week, recently deleted. */
+.extras { margin-top: 40px; display: grid; gap: 8px; max-width: 760px; }
+details.fold { border-top: 1px solid var(--border); padding-top: 4px; }
+details.fold > summary { list-style: none; display: flex; align-items: center; gap: 8px; min-height: 40px; cursor: pointer; border-radius: var(--r-control); }
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary .icon { color: var(--muted); transition: transform 240ms var(--ease); transform: rotate(-90deg); }
+details.fold[open] > summary .icon { transform: none; }
+.rows { display: grid; gap: 0; padding: 4px 0 8px; }
+.row { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 4px 2px; border-bottom: 1px solid var(--border); font-size: 14px; }
+.row:last-child { border-bottom: 0; }
+.row .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .muted { color: var(--muted); }
+
+/* ============================================================ Drafts: each reads like an email */
+.narrow { max-width: 760px; }
+.help { font-size: 14px; color: var(--muted); margin-bottom: 8px; }
+.voice-nudge { display: flex; gap: 10px; align-items: center; padding: 12px 16px; margin: 16px 0 24px; border-radius: var(--r-card); background: var(--surface); box-shadow: var(--shadow-card); font-size: 14px; }
+.voice-nudge .icon { color: var(--accent); }
+.letters { display: grid; gap: 24px; }
+.letter { background: var(--surface); border-radius: var(--r-card); box-shadow: var(--shadow-card); overflow: hidden; }
+.letter.is-new { animation-name: rise; }
+.letter-head { display: grid; gap: 0; padding: 4px 20px; border-bottom: 1px solid var(--border); }
+.lrow { display: grid; grid-template-columns: 72px minmax(0, 1fr) auto; align-items: baseline; gap: 12px; min-height: 40px; padding: 10px 0; font-size: 14px; }
+.lrow + .lrow { border-top: 1px solid var(--border); }
+.lrow .addr { color: var(--muted); }
+.lrow .subj { font-weight: 600; }
+.letter-body {
+  display: block; width: 100%; min-height: 120px; padding: 20px; border: 0; resize: none; background: transparent; color: var(--ink);
+  font: 400 15px/1.6 var(--font-ui); field-sizing: content; outline: none;
+  transition: background-color 200ms var(--ease);
+}
+.letter-body:hover { background: color-mix(in srgb, var(--hover) 50%, transparent); }
+.letter-body:focus { background: var(--hover); }
+.letter-body:focus-visible { outline: none; box-shadow: inset 3px 0 0 var(--accent); }
+.letter-why { padding: 0 20px 16px; font-size: 13px; color: var(--muted); }
+.letter-actions { display: flex; flex-wrap: wrap; gap: 8px; padding: 16px 20px; border-top: 1px solid var(--border); background: var(--page); }
+.letter-actions .btn:last-child { margin-left: auto; }
+.letter.is-stale .letter-body { color: var(--muted); }
+.letter.is-leaving, .card.is-leaving { animation: none; overflow: hidden; transition: height 200ms var(--ease-fade), opacity 160ms var(--ease-fade), margin 200ms var(--ease-fade), padding 200ms var(--ease-fade); }
+
+/* ============================================================ Prompts */
+.prompts { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+.prompt { display: grid; gap: 12px; align-content: start; padding: 20px; background: var(--surface); border-radius: var(--r-card); box-shadow: var(--shadow-card); }
+.prompt h3 { font: 600 16px/1.35 var(--font-display); letter-spacing: -0.01em; }
+.prompt blockquote { margin: 0; padding: 2px 0 2px 14px; border-left: 2px solid var(--soft); font-size: 15px; line-height: 1.55; }
+.prompt .why { font-size: 13px; color: var(--muted); }
+.prompt .btn { justify-self: start; }
+
+/* ============================================================ Week */
+.week-title { font: var(--display-weight) clamp(24px, 2.4vw, 32px)/1.15 var(--font-display); letter-spacing: var(--display-track); margin-top: 8px; }
+.week-stats { display: flex; flex-wrap: wrap; gap: 24px 48px; margin: 32px 0; }
+.weekline { margin: 8px 0 32px; max-width: 520px; }
+.weekline svg { display: block; width: 100%; height: 40px; overflow: visible; }
+.weekline .lbl { font: 500 10px var(--font-mono); letter-spacing: .08em; fill: var(--muted); }
+.weekline .today-dot { transform-box: fill-box; transform-origin: center; animation: breathe 5.2s var(--ease-breathe) infinite alternate; }
+@keyframes breathe { from { opacity: .4; transform: scale(.74); } to { opacity: 1; transform: scale(1.12); } }
+.summary { font-size: 17px; line-height: 1.6; max-width: 64ch; }
+.pathline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 24px; font-size: 14px; color: var(--muted); }
+
+/* ============================================================ Footer */
+.foot { margin-top: 64px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px; }
+.foot p { font-size: 13px; color: var(--muted); }
+
+/* ============================================================ Settings popover */
+.pop-wrap { position: relative; }
+.pop {
+  position: absolute; right: 0; top: calc(100% + 8px); z-index: 30; width: 340px; padding: 16px; display: grid; gap: 16px;
+  background: var(--raised); border-radius: var(--r-window); box-shadow: var(--shadow-lift);
+  transform-origin: top right; animation: pop-in 220ms var(--ease) both;
+}
+:root[data-style="morning-light"] .pop { border-radius: 22px; }
+@keyframes pop-in { from { opacity: 0; transform: translateY(-4px) scale(.98); } to { opacity: 1; transform: none; } }
+.pop .seg { display: flex; }
+.pop .seg button { flex: 1; justify-content: center; padding: 0 8px; font-size: 13px; }
+.swatches { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.swatch { display: grid; gap: 6px; padding: 10px; border: 0; border-radius: var(--r-control); background: var(--surface); box-shadow: inset 0 0 0 1px var(--border); text-align: left; font-size: 13px; font-weight: 500; transition: box-shadow 200ms var(--ease), transform 100ms var(--ease); }
+:root[data-style="morning-light"] .swatch { border-radius: 12px; }
+.swatch:active { transform: scale(.97); }
+.swatch[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--accent); }
+.swatch .bars { display: flex; gap: 3px; }
+.swatch .bars i { height: 10px; flex: 1; border-radius: 3px; }
+.pop .hint { font-size: 12.5px; color: var(--muted); }
+
+/* ============================================================ Dialogs */
+dialog {
+  width: min(640px, calc(100vw - 32px)); max-height: min(86vh, 900px); padding: 0; border: 0; overflow: auto;
+  border-radius: var(--r-window); background: var(--surface); color: var(--ink); box-shadow: var(--shadow-lift);
+}
+dialog[open] { animation: dlg-in 320ms var(--ease) both; }
+dialog.is-closing { animation: dlg-out 180ms var(--ease-fade) both; }
+dialog::backdrop { background: rgba(var(--shadow-rgb, 18, 48, 73), .32); }
+@keyframes dlg-in { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: none; } }
+@keyframes dlg-out { to { opacity: 0; transform: translateY(4px) scale(.99); } }
+.dlg { padding: 24px; display: grid; gap: 20px; }
+.dlg:focus { outline: none; }
+.dlg-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.dlg-top .chips { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.icon-btn { display: inline-grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: var(--r-control); background: transparent; color: var(--muted); transition: background-color 200ms var(--ease), transform 100ms var(--ease); }
+.icon-btn:hover { background: var(--hover); color: var(--ink); }
+.icon-btn:active { transform: scale(.97); }
+.title-input { width: 100%; border: 0; padding: 4px 0; background: transparent; font: var(--display-weight) 24px/1.25 var(--font-display); letter-spacing: var(--display-track); resize: none; field-sizing: content; outline: none; border-bottom: 1px solid transparent; }
+.title-input:focus { border-bottom-color: var(--accent); }
+.why-line { font-size: 14px; color: var(--muted); }
+.why-line b { color: var(--ink); font-weight: 600; }
+.detail-text { font-size: 15px; line-height: 1.6; }
+.callout { display: flex; gap: 10px; padding: 12px 14px; border-radius: var(--r-control); background: var(--warn-tint); color: var(--ink); font-size: 14px; }
+:root[data-style="morning-light"] .callout { border-radius: 12px; }
+.callout .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn-dot); flex: none; margin-top: 6px; }
+.fields { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.field { display: grid; gap: 6px; }
+.field.full { grid-column: 1 / -1; }
+.input {
+  width: 100%; min-height: 40px; padding: 8px 12px; border: 0; border-radius: var(--r-control); background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line-strong); font-size: 15px; transition: box-shadow 200ms var(--ease);
+}
+:root[data-style="morning-light"] .input { border-radius: 12px; }
+.input:focus { outline: none; box-shadow: inset 0 0 0 2px var(--accent); }
+select.input { appearance: none; padding-right: 32px; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 17px) 18px, calc(100% - 12px) 18px; background-size: 5px 5px; background-repeat: no-repeat; }
+.move { display: flex; flex-wrap: wrap; }
+.move button { flex: 1 1 auto; justify-content: center; font-size: 13px; padding: 0 10px; }
+.checklist { display: grid; gap: 2px; }
+.ck { display: flex; align-items: center; gap: 10px; min-height: 40px; font-size: 14px; }
+.ck input { width: 18px; height: 18px; accent-color: var(--accent); margin: 0; }
+.ck.done span { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--soft); }
+.dlg-links { display: flex; flex-wrap: wrap; gap: 8px; }
+.dlg-foot { display: flex; justify-content: space-between; gap: 8px; padding-top: 16px; border-top: 1px solid var(--border); }
+
+/* ============================================================ Toast */
+.toast {
+  position: fixed; left: 50%; bottom: 24px; z-index: 60; display: flex; align-items: center; gap: 12px; max-width: calc(100vw - 32px);
+  padding: 6px 6px 6px 16px; border-radius: 999px; background: var(--raised); color: var(--ink); box-shadow: var(--shadow-lift);
+  transform: translate(-50%, 0); animation: toast-in 360ms var(--ease) both;
+}
+.toast.is-out { animation: toast-out 180ms var(--ease-fade) both; }
+@keyframes toast-in { from { opacity: 0; transform: translate(-50%, 6px) scale(.98); } to { opacity: 1; transform: translate(-50%, 0); } }
+@keyframes toast-out { to { opacity: 0; transform: translate(-50%, 4px); } }
+.toast .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.toast .btn { min-height: 32px; padding: 0 12px; border-radius: 999px; }
+
+/* ============================================================ Responsive */
+@media (max-width: 1100px) {
+  .cols { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 32px 0; }
+  .cols > section { border-left: 0; padding: 0 12px 0 0; min-height: 0; }
+}
+@media (max-width: 860px) {
+  .hero-row { grid-template-columns: 1fr; gap: 24px; }
+  .fresh { justify-self: start; text-align: left; justify-items: start; }
+  .sources { justify-content: flex-start; }
+}
+@media (max-width: 640px) {
+  .app { padding: 16px 16px 48px; }
+  .hero { padding: 16px 0 24px; }
+  .stats { gap: 24px; }
+  .stat .n { font-size: 36px; }
+  .bar { gap: 12px; padding-bottom: 16px; margin-bottom: 16px; }
+  .tabs { width: 100%; }
+  .tabs button { flex: 1; justify-content: center; padding: 0 6px; }
+  .bar-actions { width: 100%; }
+  .bar-actions .btn { flex: 1; }
+  .desk { grid-template-columns: minmax(0, 1fr); }
+  .day > section { padding-left: 28px; }
+  .fields { grid-template-columns: 1fr; }
+  .lrow { grid-template-columns: 60px minmax(0, 1fr); }
+  .lrow > .chip { grid-column: 2; justify-self: start; }
+  .lrow > :nth-child(3) { grid-column: 2; justify-self: start; }
+  .letter-actions .btn { flex: 1 1 calc(50% - 8px); }
+  .letter-actions .btn:last-child { margin-left: 0; }
+  .pop { position: fixed; left: 16px; right: 16px; top: 64px; width: auto; }
+  .prompts { grid-template-columns: minmax(0, 1fr); }
+  .dlg { padding: 20px 16px; }
+}
+
+/* Reduced motion zeros durations AND delays, or staggered entrances hold cards invisible. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; transition-delay: 0ms !important; }
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header class="top">
+    <span class="eyebrow" id="dateline"></span>
+    <div class="top-right">
+      <span class="chip" id="sampleChip" hidden><span class="t">Sample data</span></span>
+      <div class="pop-wrap">
+        <button class="btn btn-quiet" id="settingsBtn" aria-expanded="false" aria-controls="settings" data-action="settings">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="15" cy="7" r="2" stroke="currentColor" stroke-width="1.8"/><circle cx="9" cy="17" r="2" stroke="currentColor" stroke-width="1.8"/></svg>
+          <span>View</span>
+        </button>
+        <div class="pop" id="settings" role="dialog" aria-label="View settings" hidden></div>
+      </div>
+    </div>
+  </header>
+
+  <section class="hero" aria-labelledby="greeting">
+    <h1 class="greeting" id="greeting"></h1>
+    <p class="focus" id="focus"></p>
+    <div class="hero-row">
+      <div class="stats" id="stats"></div>
+      <div class="fresh" id="fresh"></div>
+    </div>
+  </section>
+
+  <nav class="bar" aria-label="Board">
+    <div class="seg tabs" role="tablist" id="tabs"></div>
+    <div class="bar-actions" id="barActions"></div>
+  </nav>
+
+  <main id="view" tabindex="-1"></main>
+
+  <footer class="foot" id="foot"></footer>
+</div>
+
+<dialog id="detail" aria-labelledby="detailTitle"></dialog>
+<dialog id="addDlg" aria-labelledby="addTitle"></dialog>
+<div id="toastHost" aria-live="polite"></div>
+
+<script>
+/*
+ * Meeting Zero thinking-orbs engine (components agent).
+ *
+ * Vendored from github.com/Jakubantalik/thinking-orbs (MIT, Copyright (c)
+ * 2026 Jakub Antalik; full license text below), src/engine/core.ts,
+ * src/engine/orbits.ts and src/engine/lattice.ts, TypeScript types stripped
+ * for plain-JS use with no build step. React wrapper (ThinkingOrb.tsx) is
+ * reimplemented below as a plain mount() function against a <canvas>, same
+ * rAF/DPR/IntersectionObserver/visibilitychange lifecycle as the source.
+ *
+ * Scoped to the three states this app uses (per build spec): "working"
+ * (orbits mode), "searching" (globe mode), "listening" (wave mode). The
+ * upstream package ships nine states total; the other six modes (solving,
+ * connecting, weaving, composing, breathing, shaping) were left unvendored
+ * to keep this file auditable. Extending to a fourth state means porting
+ * one more src/engine/*.ts draw function the same way these three were.
+ *
+ * Color: upstream renders grayscale ink that flips for light/dark themes.
+ * This app is a fixed light BIRD surface, so that's collapsed to a single
+ * "monochrome ink color" resolved from the canvas element's CSS `color`
+ * (falls back to the --ink token via components.css's .mzc-orb-canvas
+ * rule, or to an explicit opts.color) blended toward white by the same
+ * depth/ink-weight math upstream used for its grayscale channel.
+ *
+ * ---- MIT License (github.com/Jakubantalik/thinking-orbs) ----
+ * Copyright (c) 2026 Jakub Antalik
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+(function () {
+  'use strict';
+
+  window.MZC = window.MZC || {};
+  var MZC = window.MZC;
+
+  // ---- engine/core.ts, TS types stripped ---------------------------------
+
+  function hashD(a, b) {
+    var v = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453;
+    return v - Math.floor(v);
+  }
+
+  /** Shared spin + tilt + orthographic projection. Returns [x, y, z]. */
+  function makeProj(yaw, tilt, cx, cy, scale) {
+    var st = Math.sin(tilt), ct = Math.cos(tilt);
+    var sy = Math.sin(yaw), cyw = Math.cos(yaw);
+    return function (x, y, z) {
+      var x1 = x * cyw + z * sy;
+      var z1 = -x * sy + z * cyw;
+      var y1 = y * ct - z1 * st;
+      var z2 = y * st + z1 * ct;
+      return [cx + x1 * scale, cy - y1 * scale, z2];
+    };
+  }
+
+  /** Shortest signed angular distance, wrapped to (-pi, pi]. */
+  function angleDelta(a, b) {
+    return Math.atan2(Math.sin(a - b), Math.cos(a - b));
+  }
+
+  function radiusScale(size, pow) {
+    return Math.pow(size / 300, pow);
+  }
+
+  /**
+   * Z-sorted painter, monochrome-ink variant: instead of upstream's
+   * dark/light grayscale channel, blends white -> inkRgb by ink weight
+   * (d.white: 0 = full ink, ~1 = faded toward the page).
+   */
+  function paint(ctx, dots, inkRgb, rMin) {
+    dots.sort(function (a, b) { return a.z - b.z; });
+    for (var i = 0; i < dots.length; i++) {
+      var d = dots[i];
+      var alpha = d.a == null ? 1 : d.a;
+      if (alpha < 0.02) continue;
+      var w = Math.min(1, Math.max(0, d.white));
+      var t = 1 - w; // ink strength: 1 = full ink color, 0 = white
+      var r = Math.round(255 + (inkRgb[0] - 255) * t);
+      var g = Math.round(255 + (inkRgb[1] - 255) * t);
+      var b = Math.round(255 + (inkRgb[2] - 255) * t);
+      ctx.fillStyle = 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+      ctx.beginPath();
+      ctx.arc(d.x, d.y, Math.max(rMin || 0.3, d.r), 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // ---- engine/orbits.ts: drawOrbits ("working") --------------------------
+
+  function drawOrbits(ctx, size, t, inkRgb, o) {
+    var cx = size / 2, cy = size / 2;
+    var R = (size / 2) * 0.82;
+    var pt = makeProj(t * 0.12, 0.3, cx, cy, 1);
+    var rs = radiusScale(size, o.rsPow == null ? 0.6 : o.rsPow);
+
+    var dots = [];
+    var orbitN = o.orbitN == null ? 12 : o.orbitN;
+    var ghostN = o.ghostN == null ? 40 : o.ghostN;
+    var particles = o.particles == null ? 3 : o.particles;
+
+    for (var orb = 0; orb < orbitN; orb++) {
+      var h1 = hashD(orb, 1.7), h2 = hashD(orb, 5.2), h3 = hashD(orb, 8.9);
+      var ro = R * (0.45 + 0.52 * h1);
+      var th = h1 * 2 * Math.PI;
+      var phi = Math.acos(2 * h2 - 1);
+      var nx = Math.sin(phi) * Math.cos(th);
+      var ny = Math.cos(phi);
+      var nz = Math.sin(phi) * Math.sin(th);
+      var ux = -ny, uy = nx, uz = 0;
+      var ul = Math.max(1e-6, Math.sqrt(ux * ux + uy * uy));
+      ux /= ul; uy /= ul;
+      var vx = ny * uz - nz * uy;
+      var vy = nz * ux - nx * uz;
+      var vz = nx * uy - ny * ux;
+      var speed = (0.25 + 0.55 * h3) * (h3 > 0.5 ? 1 : -1);
+
+      for (var k = 0; k < ghostN; k++) {
+        var a = (k / ghostN) * 2 * Math.PI;
+        var pr = pt(
+          (ux * Math.cos(a) + vx * Math.sin(a)) * ro,
+          (uy * Math.cos(a) + vy * Math.sin(a)) * ro,
+          (uz * Math.cos(a) + vz * Math.sin(a)) * ro
+        );
+        var depth = (pr[2] / ro + 1) / 2;
+        dots.push({
+          x: pr[0], y: pr[1], z: pr[2],
+          r: (o.ghostR == null ? 0.9 : o.ghostR) * rs,
+          white: 0.72,
+          a: (o.ghostA == null ? 0.5 : o.ghostA) * (0.4 + 0.6 * depth)
+        });
+      }
+      for (var m = 0; m < particles; m++) {
+        var aa = t * speed + (m / particles) * 2 * Math.PI + h2 * 6;
+        var pr2 = pt(
+          (ux * Math.cos(aa) + vx * Math.sin(aa)) * ro,
+          (uy * Math.cos(aa) + vy * Math.sin(aa)) * ro,
+          (uz * Math.cos(aa) + vz * Math.sin(aa)) * ro
+        );
+        var depth2 = (pr2[2] / ro + 1) / 2;
+        dots.push({
+          x: pr2[0], y: pr2[1], z: pr2[2],
+          r: ((o.partR == null ? 1.2 : o.partR) + (o.partRDepth == null ? 1.6 : o.partRDepth) * depth2) * rs,
+          white: 0.3 - 0.22 * depth2
+        });
+      }
+    }
+    paint(ctx, dots, inkRgb, o.rMin);
+  }
+
+  // ---- engine/lattice.ts: drawGlobe ("searching"), drawWave ("listening") --
+
+  function drawGlobe(ctx, size, t, inkRgb, o) {
+    var spin = 0.5;
+    var cx = size / 2, cy = size / 2;
+    var radius = (size / 2) * 0.82;
+    var tilt = 0.4 + 0.06 * Math.sin(t * 0.35);
+    var pt = makeProj(t * spin, tilt, cx, cy, radius);
+    var scan = t * (spin + (1.7 - spin) * (o.scanMul == null ? 1 : o.scanMul));
+    var rs = radiusScale(size, o.rsPow == null ? 0.6 : o.rsPow);
+    var dimBase = o.dimBase == null ? 1 : o.dimBase;
+
+    var dots = [];
+    var latRings = o.latRings == null ? 17 : o.latRings;
+    var lonDensity = o.lonDensity == null ? 44 : o.lonDensity;
+    for (var li = 0; li <= latRings; li++) {
+      var lat = -Math.PI / 2 + (li / latRings) * Math.PI;
+      var cosLat = Math.cos(lat), sinLat = Math.sin(lat);
+      var lonCount = Math.max(1, Math.round(Math.abs(cosLat) * lonDensity));
+      for (var lj = 0; lj < lonCount; lj++) {
+        var lon = (lj / lonCount) * 2 * Math.PI;
+        var pr = pt(cosLat * Math.cos(lon), sinLat, cosLat * Math.sin(lon));
+        var depth = (pr[2] + 1) / 2;
+        var d = angleDelta(lon + t * spin, scan);
+        var boost = Math.exp(-(d * d) / 0.18) * Math.max(0, pr[2]);
+        dots.push({
+          x: pr[0], y: pr[1], z: pr[2],
+          r: ((o.rBase == null ? 0.6 : o.rBase) + (o.rDepth == null ? 1.7 : o.rDepth) * depth + (o.rBoost == null ? 1 : o.rBoost) * boost) * rs,
+          white: (o.inkFar == null ? 0.62 : o.inkFar) - (o.inkSpan == null ? 0.54 : o.inkSpan) * depth,
+          a: dimBase + (1 - dimBase) * Math.min(1, boost)
+        });
+      }
+    }
+    paint(ctx, dots, inkRgb, o.rMin);
+  }
+
+  function drawWave(ctx, size, t, inkRgb, o) {
+    var cx = size / 2, cy = size / 2;
+    var R = (size / 2) * 0.874;
+    var pt = makeProj(t * 0.18, 0.38, cx, cy, 1);
+    var rs = radiusScale(size, o.rsPow == null ? 0.6 : o.rsPow);
+
+    var dots = [];
+    var rings = o.rings == null ? 15 : o.rings;
+    var lonDensity = o.lonDensity == null ? 40 : o.lonDensity;
+    for (var ri = 0; ri <= rings; ri++) {
+      var lat = -Math.PI / 2 + (ri / rings) * Math.PI;
+      var cosLat = Math.cos(lat), sinLat = Math.sin(lat);
+      var w = 0.62 * Math.sin(t * 2.1 - ri * 0.52) + 0.38 * Math.sin(t * 1.27 + ri * 0.83);
+      var rr = R * (0.88 + 0.105 * w);
+      var lonCount = Math.max(1, Math.round(Math.abs(cosLat) * lonDensity));
+      for (var lj = 0; lj < lonCount; lj++) {
+        var lon = (lj / lonCount) * 2 * Math.PI;
+        var pr = pt(cosLat * Math.cos(lon) * rr, sinLat * rr, cosLat * Math.sin(lon) * rr);
+        var depth = (pr[2] / R + 1) / 2;
+        var crest = Math.max(0, w);
+        dots.push({
+          x: pr[0], y: pr[1], z: pr[2],
+          r: ((o.rBase == null ? 0.6 : o.rBase) + (o.rDepth == null ? 1.7 : o.rDepth) * depth) * (1 + 0.4 * crest) * rs,
+          white: 0.66 - 0.56 * depth - 0.1 * crest
+        });
+      }
+    }
+    paint(ctx, dots, inkRgb, o.rMin);
+  }
+
+  var MODE_DRAWS = { orbits: drawOrbits, globe: drawGlobe, wave: drawWave };
+
+  // ---- engine/profiles.ts (trimmed to the 3 vendored modes) --------------
+
+  var COUNT_PAIRS = [['latRings', 'lonDensity'], ['rings', 'lonDensity']];
+  var COUNT_KEYS = ['orbitN', 'ghostN'];
+  var RADIUS_KEYS = ['rBase', 'rDepth', 'partR', 'partRDepth', 'ghostR'];
+
+  function scaleCounts(opts, scale) {
+    var out = Object.assign({}, opts);
+    var done = {};
+    var rt = Math.sqrt(scale);
+    COUNT_PAIRS.forEach(function (pair) {
+      var a = pair[0], b = pair[1];
+      if (out[a] != null && out[b] != null && !done[a] && !done[b]) {
+        out[a] = Math.max(2, Math.round(out[a] * rt));
+        out[b] = Math.max(2, Math.round(out[b] * rt));
+        done[a] = done[b] = true;
+      }
+    });
+    COUNT_KEYS.forEach(function (k) {
+      var v = out[k];
+      if (v != null && v !== 0 && !done[k]) out[k] = Math.max(1, Math.round(v * scale));
+    });
+    return out;
+  }
+
+  function scaleRadii(opts, scale) {
+    var out = Object.assign({}, opts);
+    RADIUS_KEYS.forEach(function (k) {
+      if (out[k] != null) out[k] = out[k] * scale;
+    });
+    out.rSizeMul = (out.rSizeMul == null ? 1 : out.rSizeMul) * scale;
+    return out;
+  }
+
+  var BASE_PROFILES = {
+    orbits: { orbitN: 12, ghostN: 40, ghostR: 0.9, ghostA: 0.5, particles: 3, partR: 1.2, partRDepth: 1.6, rsPow: 0.6, rMin: 0.3 },
+    globe: { latRings: 17, lonDensity: 44, rBase: 0.6, rDepth: 1.7, rBoost: 1.0, inkFar: 0.62, inkSpan: 0.54, rsPow: 0.6, rMin: 0.3 },
+    wave: { rings: 15, lonDensity: 40, rBase: 0.6, rDepth: 1.7, rsPow: 0.6, rMin: 0.3 }
+  };
+
+  // ---- presets.ts (trimmed) -----------------------------------------------
+
+  var STATE_TO_MODE = { working: 'orbits', searching: 'globe', listening: 'wave' };
+
+  var PRESETS = {
+    orbits: {
+      64: { speed: 1.885, count: 1, size: 1 },
+      20: { speed: 3.9, count: 0.238, size: 2.4 }
+    },
+    globe: {
+      64: { speed: 2.015, count: 0.42, size: 1.15, extra: { scanMul: 4.08, dimBase: 0.45 } },
+      20: { speed: 2.665, count: 0.105, size: 1.75, extra: { scanMul: 4.335, dimBase: 0.45 } }
+    },
+    wave: {
+      64: { speed: 4.388, count: 0.341, size: 1 },
+      20: { speed: 3.998, count: 0.105, size: 1.6 }
+    }
+  };
+
+  var LABELS = { working: 'Working…', searching: 'Searching…', listening: 'Listening…' };
+
+  var presetCache = {};
+  function resolvePreset(state, size) {
+    var key = state + '-' + size;
+    if (presetCache[key]) return presetCache[key];
+    var mode = STATE_TO_MODE[state] || 'orbits';
+    var preset = PRESETS[mode][size] || PRESETS[mode][64];
+    var opts = Object.assign({}, BASE_PROFILES[mode]);
+    if (preset.count !== 1) opts = scaleCounts(opts, preset.count);
+    if (preset.size !== 1) opts = scaleRadii(opts, preset.size);
+    if (preset.extra) opts = Object.assign(opts, preset.extra);
+    var resolved = { mode: mode, speed: preset.speed, opts: opts };
+    presetCache[key] = resolved;
+    return resolved;
+  }
+
+  // ---- color resolution: canvas CSS `color` -> [r,g,b] --------------------
+
+  function parseCssColor(css) {
+    var m = /rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/.exec(css || '');
+    if (m) return [parseFloat(m[1]), parseFloat(m[2]), parseFloat(m[3])];
+    return [18, 48, 73]; // --ink fallback
+  }
+
+  function resolveInk(canvas, opts) {
+    if (opts && opts.color) {
+      var probe = document.createElement('span');
+      probe.style.color = opts.color;
+      probe.style.display = 'none';
+      document.body.appendChild(probe);
+      var rgb = parseCssColor(getComputedStyle(probe).color);
+      probe.remove();
+      return rgb;
+    }
+    return parseCssColor(getComputedStyle(canvas).color);
+  }
+
+  // ---- mount: ThinkingOrb.tsx reimplemented as a plain function -----------
+
+  /**
+   * Mount a thinking-orb animation onto a <canvas>.
+   * MZC.orb(canvasEl, state, opts) -> { start, stop, setState, setPaused, destroy }
+   * state: 'working' | 'searching' | 'listening'
+   * opts: { size: 64|20 (default 64), speed: number (default 1),
+   *         paused: boolean, color: css color string (default: canvas's
+   *         computed `color`, e.g. set `.mzc-orb-canvas{color:var(--ink)}`) }
+   */
+  function orb(canvas, state, opts) {
+    opts = opts || {};
+    var size = opts.size === 20 ? 20 : 64;
+    var speedMul = opts.speed || 1;
+    var paused = !!opts.paused;
+    var inkRgb = resolveInk(canvas, opts);
+
+    canvas.setAttribute('role', 'img');
+    canvas.setAttribute('aria-label', opts.ariaLabel || LABELS[state] || 'Thinking…');
+    canvas.style.width = size + 'px';
+    canvas.style.height = size + 'px';
+    canvas.style.display = 'block';
+
+    var dpr = Math.min(2, (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 1);
+    canvas.width = Math.round(size * dpr);
+    canvas.height = Math.round(size * dpr);
+    var ctx = canvas.getContext('2d');
+
+    var resolved = resolvePreset(state, size);
+    var draw = MODE_DRAWS[resolved.mode];
+    var effSpeed = resolved.speed * speedMul;
+
+    function frame(tSec) {
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, size, size);
+      draw(ctx, size, tSec, inkRgb, resolved.opts);
+    }
+
+    var reducedMq = typeof matchMedia !== 'undefined' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
+    var raf = 0;
+    var running = false;
+
+    function loop() {
+      frame((performance.now() / 1000) * effSpeed);
+      if (running) raf = requestAnimationFrame(loop);
+    }
+    function start() {
+      if (running || paused) return;
+      if (reducedMq && reducedMq.matches) { frame(0.6); return; }
+      running = true;
+      raf = requestAnimationFrame(loop);
+    }
+    function stop() {
+      running = false;
+      if (raf) cancelAnimationFrame(raf);
+    }
+
+    // at least one frame immediately, even paused/offscreen/reduced-motion
+    if (reducedMq && reducedMq.matches) frame(0.6);
+    else frame((performance.now() / 1000) * effSpeed);
+
+    var visible = true;
+    var io = typeof IntersectionObserver !== 'undefined'
+      ? new IntersectionObserver(function (entries) {
+          visible = entries[0].isIntersecting;
+          if (visible && document.visibilityState !== 'hidden') start();
+          else stop();
+        })
+      : null;
+    if (io) io.observe(canvas);
+
+    function onVis() {
+      if (document.visibilityState === 'hidden') stop();
+      else if (visible) start();
+    }
+    document.addEventListener('visibilitychange', onVis);
+
+    function onReducedChange() {
+      if (reducedMq.matches) { stop(); frame(0.6); }
+      else if (!paused && visible) start();
+    }
+    if (reducedMq && reducedMq.addEventListener) reducedMq.addEventListener('change', onReducedChange);
+
+    if (!io && !paused) start();
+
+    return {
+      start: function () { paused = false; start(); },
+      stop: stop,
+      setPaused: function (p) { paused = !!p; if (paused) stop(); else start(); },
+      setState: function (nextState) {
+        state = nextState;
+        resolved = resolvePreset(state, size);
+        draw = MODE_DRAWS[resolved.mode];
+        effSpeed = resolved.speed * speedMul;
+        canvas.setAttribute('aria-label', LABELS[state] || 'Thinking…');
+        frame((performance.now() / 1000) * effSpeed);
+      },
+      destroy: function () {
+        stop();
+        if (io) io.disconnect();
+        document.removeEventListener('visibilitychange', onVis);
+        if (reducedMq && reducedMq.removeEventListener) reducedMq.removeEventListener('change', onReducedChange);
+      }
+    };
+  }
+
+  MZC.orb = orb;
+  MZC._orbEngine = { resolvePreset: resolvePreset, MODE_DRAWS: MODE_DRAWS, STATE_TO_MODE: STATE_TO_MODE };
+})();
+</script>
+<script>
+(function () {
+  'use strict';
+
+  /* ------------------------------------------------------------------
+     Template tokens. An unfilled token still starts with two underscores,
+     which is how the raw template knows it is being previewed.
+     ------------------------------------------------------------------ */
+  var OWNER_TOKEN = "__OWNER__", LAYOUT_TOKEN = "__LAYOUT__", STYLE_TOKEN = "__STYLE__";
+  function filled(t) { return typeof t === "string" && t.indexOf("__") !== 0; }
+  var TOKEN_AREAS = [];
+  try { TOKEN_AREAS = JSON.parse(document.getElementById("hq-areas").textContent) || []; } catch (e) { TOKEN_AREAS = []; }
+
+  var LAYOUTS = [
+    { key: "desk", label: "Desk" }, { key: "columns", label: "Columns" },
+    { key: "day", label: "Day" }, { key: "list", label: "List" }
+  ];
+  var STYLES = [
+    { key: "clearwater", label: "Clearwater", bars: ["#f6fafc", "#123049", "#0b7db8", "#77c9db"] },
+    { key: "morning-light", label: "Morning Light", bars: ["#f7fafc", "#123049", "#0b7db8", "#bfe4f2"] },
+    { key: "briefing", label: "Briefing", bars: ["#f6fafc", "#123049", "#053d5b", "#b4762a"] },
+    { key: "graphite", label: "Graphite", bars: ["#f1f2f3", "#1f2124", "#0a6fd6", "#e0e2e5"] }
+  ];
+  var COLUMNS = [
+    { key: "inbox", label: "Inbox" }, { key: "this_week", label: "This week" },
+    { key: "waiting_on", label: "Waiting on" }, { key: "later", label: "Later" }, { key: "done", label: "Done" }
+  ];
+  var SOURCES = {
+    outlook: { name: "Outlook", chip: "Outlook", open: "Open in Outlook" },
+    teams: { name: "Teams", chip: "Teams", open: "Open in Teams" },
+    meeting: { name: "Meetings", chip: "Meeting", open: "Open the meeting" },
+    brain: { name: "Your brain", chip: "Notes", open: "Open the note" },
+    phone: { name: "Phone", chip: "Call", open: "Open source" },
+    pocket: { name: "Pocket", chip: "Pocket", open: "Open the recording" },
+    manual: { name: "You", chip: "Added", open: "Open source" }
+  };
+  var STALE_DAYS = 14, WAITING_NUDGE_DAYS = 7, DELETED_DAYS = 7;
+  var REDUCED = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* Inline glyphs. Stroke 1.8, currentColor, from the Clearwater ICON family. */
+  var P = 'stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"';
+  var GLYPH = {
+    outlook: '<rect x="3.5" y="5.5" width="17" height="13" rx="2" ' + P + '/><path d="M4.5 7.5l7.5 5.5 7.5-5.5" ' + P + '/>',
+    teams: '<path d="M5 5h14a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5h-8.5L6 19.5V16H5a1.5 1.5 0 0 1-1.5-1.5v-8A1.5 1.5 0 0 1 5 5z" ' + P + '/>',
+    meeting: '<rect x="3.5" y="5" width="17" height="15" rx="2" ' + P + '/><path d="M3.5 10h17M8 3v4M16 3v4" ' + P + '/>',
+    brain: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z" fill="currentColor"/>',
+    phone: '<path d="M6.5 3.5h3L11 7.5 9 9a11 11 0 0 0 6 6l1.5-2 4 1.5v3a2 2 0 0 1-2 2A15.5 15.5 0 0 1 4.5 5.5a2 2 0 0 1 2-2z" ' + P + '/>',
+    pocket: '<rect x="7" y="3" width="10" height="18" rx="3" ' + P + '/><path d="M10 10v4M12 8.5v7M14 10v4" ' + P + '/>',
+    manual: '<path d="M4 20l4.5-1 10-10a2.1 2.1 0 0 0-3-3l-10 10L4 20z" ' + P + '/>',
+    check: '<path d="M5 12.5l4.2 4.2L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
+    external: '<path d="M7 17L17 7M9 7h8v8" ' + P + '/>',
+    close: '<path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+    chevron: '<path d="M5 8l5 5 5-5" ' + P + '/>',
+    plus: '<path d="M12 5v14M5 12h14" ' + P + '/>',
+    copy: '<rect x="8" y="8" width="12" height="12" rx="2" ' + P + '/><path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8" ' + P + '/>',
+    sparkle: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z" fill="currentColor"/>'
+  };
+  function icon(name, cls) {
+    return '<svg class="' + (cls || "icon") + '" viewBox="0 0 24 24" aria-hidden="true">' + (GLYPH[name] || "") + "</svg>";
+  }
+
+  /* ------------------------------------------------------------------
+     State. One in-memory copy of every collection. With the db, snapshots
+     replace it; in demo mode, write() edits it directly. Rendering only
+     ever reads from here.
+     ------------------------------------------------------------------ */
+  var state = { todos: {}, drafts: {}, prompts: {}, meta: {}, live: false, demo: false, loaded: false };
+  var db = null;
+  var ui = { tab: "today", seen: null, orbs: [], openId: null };
+
+  /* ------------------------------------------------------------------ Dates */
+  var MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  var DAY = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function isoDay(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  function todayIso() { return isoDay(new Date()); }
+  function addDays(n) { var d = new Date(); d.setDate(d.getDate() + n); return isoDay(d); }
+  function parseDay(iso) { if (!iso) return null; var d = new Date(String(iso).slice(0, 10) + "T00:00:00"); return isNaN(d) ? null : d; }
+  function daysUntil(iso) {
+    var d = parseDay(iso); if (!d) return null;
+    var t = new Date(); t.setHours(0, 0, 0, 0);
+    return Math.round((d - t) / 86400000);
+  }
+  function daysSince(iso) { var u = daysUntil(iso); return u === null ? 0 : -u; }
+  function shortDate(iso) { var d = parseDay(iso); return d ? MON[d.getMonth()] + " " + d.getDate() : ""; }
+  function clock(ts) {
+    var d = new Date(ts); if (isNaN(d)) return "";
+    var h = d.getHours(), m = d.getMinutes();
+    return ((h % 12) || 12) + ":" + pad(m) + " " + (h < 12 ? "AM" : "PM");
+  }
+  function whenLabel(ts) {
+    var d = new Date(ts); if (isNaN(d)) return "";
+    var du = daysUntil(isoDay(d));
+    if (du === 0) return clock(ts);
+    if (du === -1) return "yesterday " + clock(ts);
+    return DAY[d.getDay()].slice(0, 3) + " " + clock(ts);
+  }
+  function isoWeek(date) {
+    var d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    var day = d.getUTCDay() || 7; d.setUTCDate(d.getUTCDate() + 4 - day);
+    var y0 = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil(((d - y0) / 86400000 + 1) / 7);
+  }
+  function weekStart() { var d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d; }
+  /* Librarians run 7:00, 12:00 and 17:00 on weekdays (SPEC). Used only for empty-state copy. */
+  function nextSweep() {
+    var d = new Date();
+    for (var i = 0; i < 8; i++) {
+      var day = new Date(d); day.setDate(d.getDate() + i);
+      var wd = day.getDay(); if (wd === 0 || wd === 6) continue;
+      var hours = [7, 12, 17];
+      for (var j = 0; j < hours.length; j++) {
+        var at = new Date(day); at.setHours(hours[j], 0, 0, 0);
+        if (at > d) return (i === 0 ? "" : (i === 1 ? "tomorrow " : DAY[wd].slice(0, 3) + " ")) + ((hours[j] % 12) || 12) + ":00";
+      }
+    }
+    return "Monday 7:00";
+  }
+
+  /* ------------------------------------------------------------------ Helpers */
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function genId(p) { return p + "-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+  // Card and draft links come from model-written fields, so a planted "webLink" could point anywhere.
+  // Only https links to the hosts the connectors actually return, with no user:pass@ part, are shown.
+  var LINK_HOSTS = ["outlook.office.com", "outlook.office365.com", "outlook.live.com", "teams.microsoft.com", "teams.cloud.microsoft", "corridor.corridorcontext.com"];
+  function safeLink(u) {
+    try {
+      var x = new URL(u || "");
+      if (x.protocol !== "https:" || x.username || x.password) return "";
+      return LINK_HOSTS.indexOf(x.hostname.toLowerCase()) >= 0 ? x.href : "";
+    } catch (e) { return ""; }
+  }
+  function values(obj) { return Object.keys(obj).map(function (k) { return obj[k]; }); }
+  function config() { return state.meta.config || {}; }
+  function firstName() {
+    var c = config();
+    if (c.first_name) return c.first_name;
+    if (filled(OWNER_TOKEN)) return OWNER_TOKEN;
+    return "";
+  }
+  function areas() {
+    var a = (config().areas && config().areas.length) ? config().areas : TOKEN_AREAS;
+    return Array.isArray(a) ? a.filter(Boolean) : [];
+  }
+
+  /* ------------------------------------------------------------------
+     Card logic. Urgency decides the "now" card and every sort; status
+     decides the one chip a card shows.
+     ------------------------------------------------------------------ */
+  function isOpen(c) { return !c.deleted && c.column !== "done"; }
+  function isActive(c) { return isOpen(c) && c.column !== "waiting_on"; }
+  function rank(c) {
+    var du = daysUntil(c.due_date);
+    if (du !== null && du < 0) return 0;
+    if (du === 0) return 1;
+    if (c.flagged) return 2;
+    if (c.suspicious) return 3;
+    if (c.priority === "high") return 4;
+    if (du !== null && du <= 2) return 5;
+    if (c.column === "this_week") return 6;
+    if (c.column === "inbox") return 7;
+    return 8;
+  }
+  function byUrgency(a, b) {
+    return rank(a) - rank(b) || (a.due_date || "9999").localeCompare(b.due_date || "9999") || (a.added_date || "").localeCompare(b.added_date || "");
+  }
+  function openCards() { return values(state.todos).filter(isOpen).sort(byUrgency); }
+  function topThree() { return openCards().filter(function (c) { return isActive(c) && !c.suspicious && c.column !== "later"; }).slice(0, 3); }
+  function nowId() { var t = topThree(); return t.length ? t[0].id : null; }
+  function waitDays(c) { return daysSince(c.waiting_since || c.added_date); }
+  function isStale(c) { return isActive(c) && !c.long_term && daysSince(c.added_date) >= STALE_DAYS; }
+
+  function statusChip(c) {
+    if (c.column === "done") return '<span class="chip chip-ok"><span class="t">Done ' + esc(shortDate(c.done_date)) + "</span></span>";
+    if (c.suspicious) return '<span class="chip chip-warn"><span class="dot"></span><span class="t">Review</span></span>';
+    if (c.flagged && c.flag_reason) return '<span class="chip chip-warn"><span class="dot"></span><span class="t">' + esc(c.flag_reason.length > 22 ? "Check" : c.flag_reason) + "</span></span>";
+    var du = daysUntil(c.due_date);
+    if (c.column === "waiting_on") {
+      var w = waitDays(c);
+      return '<span class="chip' + (w > WAITING_NUDGE_DAYS ? " chip-warn" : "") + '">' + (w > WAITING_NUDGE_DAYS ? '<span class="dot"></span>' : "") + '<span class="t">Waiting ' + w + "d</span></span>";
+    }
+    if (du !== null && du < 0) return '<span class="chip chip-warn"><span class="dot"></span><span class="t">Overdue ' + (-du) + "d</span></span>";
+    if (du === 0) return '<span class="chip chip-accent"><span class="dot"></span><span class="t">Due today</span></span>';
+    if (isStale(c)) return '<span class="chip chip-warn"><span class="dot"></span><span class="t">Stale ' + daysSince(c.added_date) + "d</span></span>";
+    return "";
+  }
+  function dueText(c) {
+    if (c.column === "done") return "";
+    var du = daysUntil(c.due_date);
+    var bits = [];
+    if (c.checklist && c.checklist.length) bits.push(c.checklist.filter(function (x) { return x.done; }).length + "/" + c.checklist.length);
+    if (du === 1) bits.push("TMRW");
+    else if (du !== null && du > 1) bits.push(shortDate(c.due_date).toUpperCase());
+    return bits.join(" · ");
+  }
+  function sourceChip(c, extraCls) {
+    var s = SOURCES[c.source_type] || SOURCES.manual;
+    var when = shortDate(c.added_date);
+    var tip = (c.source_label || s.name) + (when ? " · " + when : "");
+    var link = safeLink(c.source_link);
+    var inner = icon(c.source_type in GLYPH ? c.source_type : "manual", "icon-sm") + '<span class="t">' + esc(s.chip + (when ? " · " + when : "")) + "</span>";
+    var cls = "chip src" + (extraCls ? " " + extraCls : "");
+    if (link) return '<a class="' + cls + '" href="' + esc(link) + '" target="_blank" rel="noopener" data-tip="' + esc(tip) + '" aria-label="' + esc(s.open + ": " + tip) + '">' + inner + "</a>";
+    return '<span class="' + cls + '" data-tip="' + esc(tip) + '">' + inner + "</span>";
+  }
+  function ctxLine(c) {
+    if (c.column === "waiting_on" && c.waiting_on) return "Waiting on " + c.waiting_on;
+    return c.source_label || c.project || "";
+  }
+
+  var renderIndex = 0;
+  function cardHtml(c, opts) {
+    opts = opts || {};
+    var isNew = ui.seen && !ui.seen[c.id];
+    var cls = "card" + (c.column === "done" ? " is-done" : "") + (c.id === opts.now ? " is-now" : "") + (isNew ? " is-new" : "");
+    var attrs = ' data-id="' + esc(c.id) + '" tabindex="0" role="button" aria-label="' + esc(c.title) + '"' +
+      (c.confidence === "medium" ? ' data-conf="medium"' : "") + (c.suspicious ? " data-sus" : "") +
+      (opts.drag ? ' draggable="true"' : "") + (isNew ? ' style="--i:' + Math.min(renderIndex++, 12) + '"' : "");
+    var due = dueText(c);
+    return '<article class="' + cls + '"' + attrs + ">" +
+      '<button class="check" data-action="toggle" data-id="' + esc(c.id) + '" aria-label="' + (c.column === "done" ? "Mark not done: " : "Mark done: ") + esc(c.title) + '">' +
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></button>' +
+      '<div class="card-main"><h3 class="card-title"><span>' + esc(c.title) + "</span></h3>" +
+      (ctxLine(c) ? '<p class="card-ctx">' + esc(ctxLine(c)) + "</p>" : "") +
+      '<div class="card-foot">' + sourceChip(c) + statusChip(c) + (due ? '<span class="due">' + esc(due) + "</span>" : "") + "</div></div></article>";
+  }
+  function emptyLine(text) {
+    return '<div class="empty"><canvas class="orb" data-orb="working" data-paused="1" aria-hidden="true"></canvas><span class="eyebrow">' + esc(text) + "</span></div>";
+  }
+
+  /* ------------------------------------------------------------------ Header */
+  function greetingWord() {
+    var h = new Date().getHours();
+    if (h < 5) return "Working late";
+    if (h < 12) return "Good morning";
+    if (h < 17) return "Good afternoon";
+    return "Good evening";
+  }
+  function counts() {
+    var all = values(state.todos);
+    var active = all.filter(function (c) { return isActive(c) && !c.suspicious; });
+    return {
+      owed: active.length,
+      waiting: all.filter(function (c) { return isOpen(c) && c.column === "waiting_on"; }).length,
+      due: active.filter(function (c) { var d = daysUntil(c.due_date); return d !== null && d <= 0; }).length
+    };
+  }
+  function sweepRunning() {
+    var s = state.meta.sweep || {};
+    if (!s.sweep_started_at) return false;
+    var started = Date.parse(s.sweep_started_at), last = Date.parse(s.last_sweep_at || 0) || 0;
+    // A sweep that started over an hour ago and never finished is not "running"; it failed.
+    return started > last && Date.now() - started < 3600000;
+  }
+  function renderHeader() {
+    var now = new Date();
+    document.getElementById("dateline").textContent = DAY[now.getDay()] + " · " + MON[now.getMonth()] + " " + now.getDate();
+    var name = firstName();
+    document.getElementById("greeting").textContent = greetingWord() + (name ? ", " + name : "") + ".";
+    var brief = state.meta.brief || {};
+    var k = counts();
+    var focus = state.unavailable ? "Your board can't reach its data from here." : brief.focus || (state.loaded && !k.owed ? "Nothing needs you right now. The next sweep runs at " + nextSweep() + "." : "");
+    document.getElementById("focus").textContent = focus;
+
+    document.getElementById("stats").innerHTML = [
+      [k.owed, "You owe"], [k.waiting, "Waiting on"], [k.due, "Due today"]
+    ].map(function (s) { return '<div class="stat"><span class="n">' + s[0] + '</span><span class="eyebrow">' + s[1] + "</span></div>"; }).join("");
+
+    var sweep = state.meta.sweep || {}, brain = state.meta.brain || {};
+    var lines = [];
+    if (sweepRunning()) {
+      var names = (config().sources || []).map(function (id) { return (SOURCES[id] || {}).name; }).filter(Boolean).slice(0, 3);
+      lines.push('<span class="sweeping"><canvas class="orb live" data-orb="working" aria-hidden="true"></canvas><span class="eyebrow">Sweeping' + (names.length ? " · " + esc(names.join(" · ")) : "") + "</span></span>");
+    }
+    if (sweep.last_sweep_at) {
+      var variant = sweep.last_variant === "friday" ? "Friday recap" : (sweep.last_variant || "morning") + " librarian";
+      lines.push("<p>Updated " + esc(whenLabel(sweep.last_sweep_at)) + " by your " + esc(variant) + "</p>");
+    } else if (state.loaded) {
+      lines.push("<p>Your first sweep runs at " + esc(nextSweep()) + "</p>");
+    }
+    if (brain.updated) lines.push("<p>Notes current as of " + esc(shortDate(brain.updated)) + "</p>");
+    var srcs = (config().sources || []).filter(function (id) { return SOURCES[id]; });
+    if (srcs.length) {
+      lines.push('<div class="sources"><span class="eyebrow">Reading from</span>' + srcs.map(function (id) {
+        return '<span class="chip">' + icon(id, "icon-sm") + '<span class="t">' + esc(SOURCES[id].name) + "</span></span>";
+      }).join("") + "</div>");
+    }
+    document.getElementById("fresh").innerHTML = lines.join("");
+  }
+
+  /* ------------------------------------------------------------------ Tabs and toolbar */
+  function liveDrafts() { return values(state.drafts).filter(function (d) { return d.status !== "dismissed"; }); }
+  function renderTabs() {
+    var pending = liveDrafts().filter(function (d) { return d.status !== "sent"; }).length;
+    var tabs = [["today", "Today", ""], ["drafts", "Drafts", pending || ""], ["prompts", "Prompts", ""], ["week", "Week", ""]];
+    document.getElementById("tabs").innerHTML = tabs.map(function (t) {
+      return '<button role="tab" data-action="tab" data-tab="' + t[0] + '" aria-selected="' + (ui.tab === t[0]) + '">' + t[1] +
+        (t[2] !== "" ? '<span class="count">' + t[2] + "</span>" : "") + "</button>";
+    }).join("");
+    document.getElementById("barActions").innerHTML = ui.tab === "today"
+      ? '<button class="btn" data-action="add" data-mode="call">' + icon("phone") + "Log a call</button>" +
+        '<button class="btn btn-primary" data-action="add" data-mode="task">' + icon("plus") + "Add</button>"
+      : "";
+  }
+
+  /* ------------------------------------------------------------------ Today: four layouts */
+  function layout() { return document.documentElement.getAttribute("data-layout") || "desk"; }
+
+  function nudgeHtml() {
+    var all = openCards();
+    var waits = all.filter(function (c) { return c.column === "waiting_on" && waitDays(c) > WAITING_NUDGE_DAYS; });
+    var stale = all.filter(isStale);
+    var parts = [];
+    if (waits.length) parts.push((waits.length === 1 ? "One wait is" : waits.length + " waits are") + " over a week old: " +
+      waits.slice(0, 2).map(function (c) { return '<button data-action="open" data-id="' + esc(c.id) + '">' + esc(c.waiting_on || c.title) + "</button> (" + waitDays(c) + " days)"; }).join(", ") + ". Worth a nudge.");
+    if (stale.length) parts.push((stale.length === 1 ? "One card has" : stale.length + " cards have") + " sat for two weeks: " +
+      stale.slice(0, 2).map(function (c) { return '<button data-action="open" data-id="' + esc(c.id) + '">' + esc(c.title) + "</button>"; }).join(", ") + ". Keep, move to Later, or let go.");
+    return parts.length ? '<p class="nudge"><span class="dot"></span><span>' + parts.join(" ") + "</span></p>" : "";
+  }
+
+  function sectionHead(title, count, extra) {
+    return '<div class="section-head"><h2>' + esc(title) + '</h2><span class="eyebrow num">' + (extra ? esc(extra) + " · " : "") + count + "</span></div>";
+  }
+
+  function renderDesk(now) {
+    // Suspicious cards lead the desk in their own group: grouped by area they could land below the fold,
+    // and they are the one card the owner must see before acting on anything else.
+    var review = openCards().filter(function (c) { return c.suspicious; });
+    var cards = openCards().filter(function (c) { return !c.suspicious; });
+    var names = areas().slice();
+    cards.forEach(function (c) { if (c.area && names.indexOf(c.area) < 0) names.push(c.area); });
+    var groups = names.map(function (a) { return { name: a, cards: cards.filter(function (c) { return c.area === a; }) }; });
+    var other = cards.filter(function (c) { return !c.area || names.indexOf(c.area) < 0; });
+    if (other.length) groups.push({ name: "Other", cards: other, other: true });
+    if (review.length) groups.unshift({ name: "Review first", cards: review, other: true });
+    if (!groups.length) groups.push({ name: "Today", cards: [] });
+    return '<div class="desk">' + groups.map(function (g) {
+      return '<section data-drop-area="' + esc(g.other ? "" : g.name) + '">' + sectionHead(g.name, g.cards.length) +
+        '<div class="stack">' + (g.cards.length ? g.cards.map(function (c) { return cardHtml(c, { now: now, drag: true }); }).join("") : emptyLine("Clear · next sweep " + nextSweep())) + "</div></section>";
+    }).join("") + "</div>";
+  }
+
+  function renderColumns(now) {
+    var all = values(state.todos).filter(function (c) { return !c.deleted; });
+    var EMPTY = { inbox: "Inbox clear", this_week: "Nothing set for this week", waiting_on: "Not waiting on anyone", later: "Nothing parked", done: "Nothing closed yet this week" };
+    return '<div class="cols">' + COLUMNS.map(function (col) {
+      var list = all.filter(function (c) { return c.column === col.key; });
+      if (col.key === "done") list = list.filter(function (c) { return daysSince(c.done_date) <= 7; }).sort(function (a, b) { return (b.done_date || "").localeCompare(a.done_date || ""); });
+      else list.sort(byUrgency);
+      return '<section data-drop-col="' + col.key + '">' + sectionHead(col.label, list.length) + '<div class="stack">' +
+        (list.length ? list.map(function (c) { return cardHtml(c, { now: now, drag: true }); }).join("") : emptyLine(EMPTY[col.key])) + "</div></section>";
+    }).join("") + "</div>";
+  }
+
+  function renderDay(now) {
+    var cards = openCards();
+    var today = [], week = [], waiting = [], later = [];
+    cards.forEach(function (c) {
+      var du = daysUntil(c.due_date);
+      if (c.column === "waiting_on") waiting.push(c);
+      else if ((du !== null && du <= 0) || c.suspicious || c.id === now) today.push(c);
+      else if (c.column === "later" && (du === null || du > 7)) later.push(c);
+      else week.push(c);
+    });
+    var groups = [
+      ["Today", today, "Nothing due today · next sweep " + nextSweep()],
+      ["This week", week, "Nothing else this week"],
+      ["Waiting on", waiting, "Not waiting on anyone"],
+      ["Later", later, "Nothing parked"]
+    ];
+    return '<div class="day">' + groups.map(function (g) {
+      return '<section><span class="node" aria-hidden="true"></span>' + sectionHead(g[0], g[1].length) + '<div class="stack">' +
+        (g[1].length ? g[1].map(function (c) { return cardHtml(c, { now: now }); }).join("") : emptyLine(g[2])) + "</div></section>";
+    }).join("") + "</div>";
+  }
+
+  function renderList(now) {
+    var top = topThree();
+    var topIds = top.map(function (c) { return c.id; });
+    var rest = openCards().filter(function (c) { return topIds.indexOf(c.id) < 0 && c.column !== "waiting_on"; });
+    var waiting = openCards().filter(function (c) { return c.column === "waiting_on"; });
+    return '<div class="list">' +
+      '<section>' + sectionHead("Start here", top.length) + '<div class="top3">' +
+      (top.length ? top.map(function (c, i) { return '<div class="rankrow"><span class="rank" aria-hidden="true">' + (i + 1) + "</span>" + cardHtml(c, { now: now }) + "</div>"; }).join("") : emptyLine("Nothing pressing · next sweep " + nextSweep())) +
+      "</div></section>" +
+      (rest.length ? "<section>" + sectionHead("Everything else", rest.length) + '<div class="stack">' + rest.map(function (c) { return cardHtml(c, {}); }).join("") + "</div></section>" : "") +
+      (waiting.length ? "<section>" + sectionHead("Waiting on", waiting.length) + '<div class="stack">' + waiting.map(function (c) { return cardHtml(c, {}); }).join("") + "</div></section>" : "") +
+      "</div>";
+  }
+
+  function extrasHtml() {
+    var all = values(state.todos);
+    var done = all.filter(function (c) { return !c.deleted && c.column === "done" && daysSince(c.done_date) <= 7; })
+      .sort(function (a, b) { return (b.done_date || "").localeCompare(a.done_date || ""); });
+    var deleted = all.filter(function (c) { return c.deleted && daysSince(c.deleted_date) <= DELETED_DAYS; });
+    var html = "";
+    if (layout() !== "columns" && done.length) {
+      html += '<details class="fold"><summary>' + icon("chevron") + '<span class="eyebrow num">Done this week · ' + done.length + '</span></summary><div class="rows">' +
+        done.map(function (c) { return '<div class="row"><span class="grow">' + esc(c.title) + '</span><span class="eyebrow">' + esc(shortDate(c.done_date)) + '</span><button class="btn btn-quiet" data-action="toggle" data-id="' + esc(c.id) + '">Reopen</button></div>'; }).join("") + "</div></details>";
+    }
+    if (deleted.length) {
+      html += '<details class="fold"><summary>' + icon("chevron") + '<span class="eyebrow num">Recently deleted · ' + deleted.length + '</span></summary><div class="rows">' +
+        deleted.map(function (c) { return '<div class="row"><span class="grow muted">' + esc(c.title) + '</span><button class="btn btn-quiet" data-action="restore" data-id="' + esc(c.id) + '">Restore</button></div>'; }).join("") + "</div></details>";
+    }
+    return html ? '<div class="extras">' + html + "</div>" : "";
+  }
+
+  function renderToday() {
+    var now = nowId();
+    renderIndex = 0;
+    var anything = values(state.todos).some(function (c) { return !c.deleted; });
+    if (state.unavailable) {
+      return '<div class="empty empty-hero"><canvas class="orb" data-orb="working" data-size="64" data-paused="1" aria-hidden="true"></canvas>' +
+        '<span class="eyebrow">Live data unavailable · open your HQ from the Artifacts list in Claude</span></div>';
+    }
+    if (state.loaded && !anything) {
+      return '<div class="empty empty-hero"><canvas class="orb" data-orb="working" data-size="64" data-paused="1" aria-hidden="true"></canvas>' +
+        '<span class="eyebrow">Nothing on your plate yet · first sweep ' + esc(nextSweep()) + "</span></div>" + extrasHtml();
+    }
+    var body = { desk: renderDesk, columns: renderColumns, day: renderDay, list: renderList }[layout()] || renderDesk;
+    return nudgeHtml() + body(now) + extrasHtml();
+  }
+
+  /* ------------------------------------------------------------------ Drafts */
+  var COMPOSE_LIMIT = 1800; // Long compose URLs fail in some browsers and Outlook builds (consult section 4).
+  // An edit to an empty body is still the owner's edit: never fall back to the text they removed.
+  function draftText(d) { return d.body_edited != null ? d.body_edited : (d.body || ""); }
+  function recipients(list) { return (list || []).map(function (r) { return r.address || r.name; }).filter(Boolean); }
+  // Outlook on the web compose deeplink. It opens a NEW message: the thread is not quoted, so
+  // the page also offers "Open original" for a threaded reply. Multiple recipients use ";".
+  function composeUrl(d) {
+    // Commas separate recipients; cc is left out because the deeplink's cc support is unverified (drafting.md).
+    return "https://outlook.office.com/mail/deeplink/compose?to=" + encodeURIComponent(recipients(d.to).join(",")) +
+      "&subject=" + encodeURIComponent(d.subject || "") + "&body=" + encodeURIComponent(draftText(d));
+  }
+  function draftStatus(d) {
+    if (d.status === "sent") return '<span class="chip chip-ok"><span class="t">Sent ' + esc(shortDate(d.sent_at)) + "</span></span>";
+    if (d.status === "stale") return '<span class="chip chip-warn"><span class="dot"></span><span class="t">Out of date</span></span>';
+    if (d.status === "edited") return '<span class="chip"><span class="t">Edited</span></span>';
+    return '<span class="chip"><span class="t">Ready</span></span>';
+  }
+  function letterHtml(d) {
+    var to = (d.to || []).map(function (r) { return esc(r.name || r.address) + (r.name && r.address ? ' <span class="addr">' + esc(r.address) + "</span>" : ""); }).join(", ");
+    var url = composeUrl(d);
+    var tooLong = url.length > COMPOSE_LIMIT;
+    var thread = safeLink(d.thread_link);
+    var whyBits = [];
+    if (d.why) whyBits.push("Why: " + esc(d.why));
+    whyBits.push(d.confidence === "medium" ? "Medium confidence, give it a read" : "High confidence");
+    if (d.assumptions && d.assumptions.length) whyBits.push("Assumes " + esc(d.assumptions.join("; ")));
+    if (d.status === "stale" && d.stale_reason) whyBits.unshift("Out of date: " + esc(d.stale_reason));
+    var isNew = ui.seen && !ui.seen["d:" + d.id];
+    return '<article class="letter' + (d.status === "stale" ? " is-stale" : "") + (isNew ? " is-new" : "") + '" id="draft-' + esc(d.id) + '" data-draft="' + esc(d.id) + '"' + (isNew ? ' style="--i:' + Math.min(renderIndex++, 6) + '"' : "") + ">" +
+      '<div class="letter-head">' +
+      '<div class="lrow"><span class="eyebrow">To</span><span>' + (to || '<span class="addr">Needs a recipient</span>') + "</span>" + draftStatus(d) + "</div>" +
+      (d.cc && d.cc.length ? '<div class="lrow"><span class="eyebrow">Cc</span><span>' + d.cc.map(function (r) { return esc(r.name || r.address); }).join(", ") + "</span></div>" : "") +
+      '<div class="lrow"><span class="eyebrow">Subject</span><span class="subj">' + esc(d.subject) + "</span></div></div>" +
+      '<label class="sr" for="body-' + esc(d.id) + '">Draft to ' + esc(recipients(d.to).join(", ")) + "</label>" +
+      '<textarea class="letter-body" id="body-' + esc(d.id) + '" data-draft-body="' + esc(d.id) + '" spellcheck="true"' + (d.status === "sent" ? " readonly" : "") + ">" + esc(draftText(d)) + "</textarea>" +
+      '<p class="letter-why">' + whyBits.join(" · ") + "</p>" +
+      '<div class="letter-actions">' +
+      '<button class="btn btn-primary" data-action="copy-draft" data-id="' + esc(d.id) + '">' + icon("copy") + "Copy</button>" +
+      (thread ? '<a class="btn" href="' + esc(thread) + '" target="_blank" rel="noopener">Open original' + icon("external", "icon arrow") + "</a>"
+        : '<span class="btn" aria-disabled="true">No link to the original</span>') +
+      (tooLong ? '<span class="btn" aria-disabled="true">Long draft: copy instead</span>'
+        : '<a class="btn" data-compose="' + esc(d.id) + '" href="' + esc(url) + '" target="_blank" rel="noopener">New email in Outlook' + icon("external", "icon arrow") + "</a>") +
+      '<button class="btn btn-quiet" data-action="dismiss-draft" data-id="' + esc(d.id) + '">Dismiss</button>' +
+      "</div></article>";
+  }
+  function renderDrafts() {
+    var order = { ready: 0, edited: 0, stale: 1, sent: 2 };
+    var list = liveDrafts().sort(function (a, b) { return (order[a.status] || 0) - (order[b.status] || 0) || (b.created_at || "").localeCompare(a.created_at || ""); });
+    renderIndex = 0;
+    var voice = config().voice_profile_path;
+    var html = '<div class="narrow"><p class="help">For a threaded reply, open the original, hit Reply, and paste. Nothing here is ever sent for you.</p>';
+    if (!voice) html += '<div class="voice-nudge">' + icon("sparkle") + "<span>Say “learn my voice” to make these sound like you.</span></div>";
+    else html += '<div style="height:16px"></div>';
+    html += list.length ? '<div class="letters">' + list.map(letterHtml).join("") + "</div>" : emptyLine("No drafts waiting · next sweep " + nextSweep());
+    return html + "</div>";
+  }
+
+  /* ------------------------------------------------------------------ Prompts */
+  function renderPrompts() {
+    var list = values(state.prompts).sort(function (a, b) { return (a.title || "").localeCompare(b.title || ""); });
+    if (!list.length) return emptyLine("Prompts arrive with your Friday recap");
+    return '<p class="help">Copy one into Claude when you want it. No typing needed.</p><div style="height:16px"></div><div class="prompts">' + list.map(function (p) {
+      return '<article class="prompt">' + (p.area ? '<span class="eyebrow">' + esc(p.area) + "</span>" : "") +
+        "<h3>" + esc(p.title) + "</h3><blockquote>" + esc(p.prompt) + "</blockquote>" +
+        (p.why ? '<p class="why">' + esc(p.why) + "</p>" : "") +
+        '<button class="btn" data-action="copy-prompt" data-id="' + esc(p.id) + '">' + icon("copy") + "Copy</button></article>";
+    }).join("") + "</div>";
+  }
+
+  /* ------------------------------------------------------------------ Week */
+  function weekLine() {
+    // The brand's dotted motif: five weekday nodes on a soft dotted line. Today's node breathes;
+    // it is the only ambient motion on the board, and reduced motion stills it.
+    var start = weekStart(), todayIdx = (new Date().getDay() + 6) % 7, W = 520, labels = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+    var x = function (i) { return 28 + i * ((W - 56) / 4); };
+    var nodes = labels.map(function (l, i) {
+      var past = i < todayIdx, today = i === todayIdx;
+      var d = new Date(start); d.setDate(start.getDate() + i);
+      var dot = today ? '<circle class="today-dot" cx="' + x(i) + '" cy="12" r="3.2" fill="var(--accent)"/><circle cx="' + x(i) + '" cy="12" r="7" fill="none" stroke="var(--accent)" stroke-opacity=".35" stroke-width="1.2"/>'
+        : '<circle cx="' + x(i) + '" cy="12" r="' + (past ? 3 : 2.4) + '" fill="' + (past ? "var(--ink)" : "var(--page)") + '" fill-opacity="' + (past ? ".55" : "1") + '" stroke="' + (past ? "none" : "var(--line-strong)") + '" stroke-width="1.4"/>';
+      return dot + '<text class="lbl" x="' + x(i) + '" y="36" text-anchor="middle">' + l.toUpperCase() + " " + d.getDate() + "</text>";
+    }).join("");
+    return '<div class="weekline" aria-hidden="true"><svg viewBox="0 0 ' + W + ' 40" preserveAspectRatio="none"><line x1="' + x(0) + '" y1="12" x2="' + x(4) + '" y2="12" stroke="var(--soft)" stroke-width="2" stroke-linecap="round" stroke-dasharray="0.1 6"/>' + nodes + "</svg></div>";
+  }
+  function renderWeek() {
+    var w = state.meta.weekly;
+    var start = weekStart(), end = new Date(start); end.setDate(start.getDate() + 4);
+    var label = "Week " + isoWeek(new Date()) + " · " + shortDate(isoDay(start)) + " to " + shortDate(isoDay(end));
+    var html = '<div class="narrow"><span class="eyebrow">' + esc(label) + "</span>" + weekLine();
+    if (!w) return html + emptyLine("First recap Friday 4:00 PM") + "</div>";
+    html += '<h2 class="week-title">' + esc((w.summary_text || "").split(/(?<=\.)\s/)[0] || "This week.") + "</h2>";
+    html += '<div class="week-stats">' + [[w.closed, "Closed"], [w.added, "Added"], [w.drafts_made, "Drafts made"], [w.drafts_sent, "Drafts sent"]].map(function (s) {
+      return '<div class="stat"><span class="n">' + (s[0] == null ? "0" : esc(s[0])) + '</span><span class="eyebrow">' + s[1] + "</span></div>";
+    }).join("") + "</div>";
+    var rest = (w.summary_text || "").split(/(?<=\.)\s/).slice(1).join(" ");
+    if (rest) html += '<p class="summary">' + esc(rest) + "</p>";
+    if (w.week_file_path) html += '<p class="pathline">Saved to your notes as <span class="chip"><span class="t" style="text-transform:none">' + esc(w.week_file_path) + '</span></span><button class="btn btn-quiet" data-action="copy-path">Copy path</button></p>';
+    if (w.brain_write_failed) html += '<p class="nudge" style="margin-top:16px"><span class="dot"></span><span>The recap could not be saved to your notes this week. Say “check my HQ” to retry.</span></p>';
+    var done = values(state.todos).filter(function (c) { return !c.deleted && c.column === "done" && parseDay(c.done_date) >= start; });
+    if (done.length) html += '<div style="height:32px"></div>' + sectionHead("Closed this week", done.length) + '<div class="rows">' +
+      done.map(function (c) { return '<div class="row"><span class="grow">' + esc(c.title) + '</span><span class="eyebrow">' + esc(shortDate(c.done_date)) + "</span></div>"; }).join("") + "</div>";
+    return html + "</div>";
+  }
+
+  /* ------------------------------------------------------------------ Footer */
+  function renderFoot() {
+    var s = state.meta.sweep || {};
+    var v = config().hq_version || s.hq_version;
+    document.getElementById("foot").innerHTML =
+      '<span class="eyebrow">' + esc(["HQ " + (v || "draft"), s.last_sweep_at ? "Last sweep " + shortDate(isoDay(new Date(s.last_sweep_at))) + " " + clock(s.last_sweep_at) : "No sweep yet"].join(" · ")) + "</span>" +
+      "<p>Want something changed? Tell Claude, or drag a box over it and comment.</p>";
+  }
+
+  /* ------------------------------------------------------------------
+     Render. The whole view is rebuilt from state; it is small (tens of
+     cards), and rebuilding keeps every layout honest. Two guards: never
+     rebuild under a focused draft textarea (it would eat typing), and
+     only cards not seen before get the entrance cascade.
+     ------------------------------------------------------------------ */
+  var pendingRender = false;
+  function scheduleRender() {
+    if (pendingRender) return; pendingRender = true;
+    requestAnimationFrame(function () { pendingRender = false; renderAll(); });
+  }
+  function renderAll() {
+    var active = document.activeElement;
+    if (active && active.hasAttribute && active.hasAttribute("data-draft-body")) { ui.deferred = true; return; }
+    renderHeader(); renderTabs(); renderFoot();
+    var view = document.getElementById("view");
+    view.innerHTML = { today: renderToday, drafts: renderDrafts, prompts: renderPrompts, week: renderWeek }[ui.tab]();
+    if (state.loaded) {
+      ui.seen = ui.seen || {};
+      values(state.todos).forEach(function (c) { ui.seen[c.id] = 1; });
+      values(state.drafts).forEach(function (d) { ui.seen["d:" + d.id] = 1; });
+    }
+    mountOrbs();
+  }
+  function mountOrbs() {
+    ui.orbs.forEach(function (o) { try { o.destroy(); } catch (e) {} });
+    ui.orbs = [];
+    if (!window.MZC || !MZC.orb) return;
+    document.querySelectorAll("canvas[data-orb]").forEach(function (cv) {
+      var paused = cv.hasAttribute("data-paused");
+      var o = MZC.orb(cv, cv.getAttribute("data-orb"), { size: cv.getAttribute("data-size") === "64" ? 64 : 20, paused: paused });
+      if (!paused) o.start();
+      ui.orbs.push(o);
+    });
+  }
+
+  /* ------------------------------------------------------------------
+     Writes. One path for both modes: with the db, write and let the
+     snapshot re-render; in demo mode, edit state and re-render.
+     ------------------------------------------------------------------ */
+  function write(col, id, patch, create) {
+    if (state.live) {
+      var ref = db.collection(col).doc(id);
+      return (create ? ref.set(patch) : ref.update(patch)).catch(function (err) {
+        console.error(col + " write failed", err);
+        toast(err && err.code === "quota_exceeded" ? "The board is full. Delete a few old cards." : "That did not save. Try again.");
+      });
+    }
+    state[col][id] = Object.assign({}, create ? {} : state[col][id], patch, { id: id });
+    scheduleRender();
+    return Promise.resolve();
+  }
+
+  /* ------------------------------------------------------------------ Toast */
+  var toastTimer = null;
+  function toast(label, actionText, onAction, ms) {
+    var host = document.getElementById("toastHost");
+    clearTimeout(toastTimer);
+    host.innerHTML = '<div class="toast" role="status"><span class="eyebrow t">' + esc(label) + "</span>" +
+      (actionText ? '<button class="btn btn-quiet" data-toast-action>' + esc(actionText) + "</button>" : "") + "</div>";
+    var el = host.firstChild;
+    if (actionText) el.querySelector("[data-toast-action]").addEventListener("click", function () { hideToast(); onAction(); });
+    toastTimer = setTimeout(hideToast, ms || 6000);
+  }
+  function hideToast() {
+    var el = document.querySelector(".toast"); if (!el) return;
+    el.classList.add("is-out");
+    setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, REDUCED ? 0 : 180);
+  }
+
+  /* ------------------------------------------------------------------
+     Done, with motion: check fills and draws (240ms io), the title strike
+     wipes left to right (260ms), then the card collapses (200ms) and the
+     counts tick. Undo for 6 seconds.
+     ------------------------------------------------------------------ */
+  function collapse(el, then) {
+    if (REDUCED || !el) { then(); return; }
+    el.style.height = el.offsetHeight + "px";
+    el.classList.add("is-leaving");
+    el.offsetHeight; // commit the start height before collapsing
+    el.style.height = "0px"; el.style.opacity = "0"; el.style.paddingTop = "0px"; el.style.paddingBottom = "0px"; el.style.marginTop = "-8px";
+    setTimeout(then, 210);
+  }
+  function toggleDone(id, el) {
+    var c = state.todos[id]; if (!c) return;
+    if (c.column === "done") {
+      write("todos", id, { column: c.prev_column && c.prev_column !== "done" ? c.prev_column : "this_week", done_date: null });
+      return;
+    }
+    var prev = c.column;
+    var card = el && el.closest(".card");
+    var finish = function () {
+      write("todos", id, { column: "done", done_date: todayIso(), prev_column: prev, flagged: false });
+      toast("Done · " + c.title, "Undo", function () { write("todos", id, { column: prev, done_date: null }); });
+    };
+    if (!card || REDUCED) { finish(); return; }
+    card.classList.add("is-completing");
+    setTimeout(function () { collapse(card, finish); }, 460);
+  }
+  function moveTo(id, col) {
+    var c = state.todos[id]; if (!c || c.column === col) return;
+    var patch = { column: col };
+    if (col === "done") { patch.done_date = todayIso(); patch.prev_column = c.column; }
+    if (col === "waiting_on") patch.waiting_since = c.waiting_since || todayIso();
+    if (c.column === "done") patch.done_date = null;
+    write("todos", id, patch);
+  }
+  function deleteCard(id) {
+    var c = state.todos[id]; if (!c) return;
+    write("todos", id, { deleted: true, deleted_date: todayIso() });
+    toast("Deleted · " + c.title, "Undo", function () { write("todos", id, { deleted: false, deleted_date: null }); });
+  }
+
+  /* ------------------------------------------------------------------ Dialogs */
+  function openDialog(dlg) {
+    if (typeof dlg.showModal === "function") dlg.showModal(); else dlg.setAttribute("open", "");
+  }
+  function closeDialog(dlg) {
+    if (!dlg.open) return;
+    if (REDUCED) { dlg.close(); return; }
+    dlg.classList.add("is-closing");
+    setTimeout(function () { dlg.classList.remove("is-closing"); dlg.close(); }, 170);
+  }
+  function areaOptions(selected) {
+    var list = areas();
+    if (selected && list.indexOf(selected) < 0) list = list.concat([selected]);
+    return '<option value="">Other</option>' + list.map(function (a) { return "<option" + (a === selected ? " selected" : "") + ">" + esc(a) + "</option>"; }).join("");
+  }
+
+  function openDetail(id) {
+    var c = state.todos[id]; if (!c) return;
+    ui.openId = id;
+    var dlg = document.getElementById("detail");
+    var s = SOURCES[c.source_type] || SOURCES.manual;
+    var link = safeLink(c.source_link);
+    var draft = c.draft_id && state.drafts[c.draft_id] && state.drafts[c.draft_id].status !== "dismissed";
+    var ck = (c.checklist || []).map(function (x, i) {
+      return '<label class="ck' + (x.done ? " done" : "") + '"><input type="checkbox" data-ck="' + i + '"' + (x.done ? " checked" : "") + "><span>" + esc(x.text) + "</span></label>";
+    }).join("");
+    dlg.innerHTML = '<div class="dlg" tabindex="-1" autofocus>' +
+      '<div class="dlg-top"><div class="chips">' + sourceChip(c) + statusChip(c) + (c.confidence === "medium" ? '<span class="chip"><span class="t">Medium confidence</span></span>' : "") + "</div>" +
+      '<button class="icon-btn" data-action="close" aria-label="Close">' + icon("close") + "</button></div>" +
+      '<div><label class="sr" for="detailTitle">Title</label><textarea class="title-input" id="detailTitle" rows="1" data-field="title">' + esc(c.title) + "</textarea>" +
+      (c.why ? '<p class="why-line"><b>Why it is here:</b> ' + esc(c.why) + "</p>" : "") + "</div>" +
+      (c.suspicious ? '<div class="callout"><span class="dot"></span><span><b>Review before acting.</b> ' + esc(c.suspicious_reason || "This message asks for something unusual.") + " Nothing was done with it. Check the sender another way if it matters.</span></div>" : "") +
+      (c.detail ? '<p class="detail-text">' + esc(c.detail) + "</p>" : "") +
+      (c.flagged && c.flag_reason ? '<div class="callout"><span class="dot"></span><span>' + esc(c.flag_reason) + "</span></div>" : "") +
+      '<div class="field"><span class="eyebrow">Move to</span><div class="seg move" role="group" aria-label="Move to">' +
+      COLUMNS.map(function (col) { return '<button data-action="move" data-col="' + col.key + '" aria-pressed="' + (c.column === col.key) + '">' + col.label + "</button>"; }).join("") + "</div></div>" +
+      '<div class="fields">' +
+      '<label class="field"><span class="eyebrow">Area</span><select class="input" data-field="area">' + areaOptions(c.area) + "</select></label>" +
+      '<label class="field"><span class="eyebrow">Due</span><input class="input" type="date" data-field="due_date" value="' + esc(c.due_date || "") + '"></label>' +
+      (c.column === "waiting_on" ? '<label class="field full"><span class="eyebrow">Waiting on</span><input class="input" data-field="waiting_on" placeholder="Who has the next move?" value="' + esc(c.waiting_on || "") + '"></label>' : "") +
+      "</div>" +
+      '<div class="field"><span class="eyebrow">Steps</span><div class="checklist">' + ck + '</div><input class="input" data-add-step placeholder="Add a step and press Enter"></div>' +
+      '<div class="dlg-links">' +
+      (link ? '<a class="btn" href="' + esc(link) + '" target="_blank" rel="noopener">' + esc(s.open) + icon("external", "icon arrow") + "</a>" : "") +
+      (draft ? '<button class="btn" data-action="goto-draft" data-id="' + esc(c.draft_id) + '">See the draft reply</button>' : "") +
+      "</div>" +
+      '<div class="dlg-foot"><button class="btn btn-quiet" data-action="delete" data-id="' + esc(id) + '">Delete</button>' +
+      '<button class="btn" data-action="close">Close</button></div></div>';
+    openDialog(dlg);
+  }
+  function saveDetailField(el) {
+    var id = ui.openId, c = state.todos[id]; if (!c) return;
+    var f = el.getAttribute("data-field"), v = el.value.trim();
+    if (f === "title" && !v) { el.value = c.title; return; }
+    if ((c[f] || "") === v) return;
+    var patch = {}; patch[f] = v || null;
+    write("todos", id, patch);
+  }
+
+  function openAdd(mode) {
+    var dlg = document.getElementById("addDlg");
+    var call = mode === "call";
+    dlg.innerHTML = '<form class="dlg" data-add-form data-mode="' + mode + '">' +
+      '<div class="dlg-top"><h2 id="addTitle" class="week-title" style="margin:0;font-size:22px">' + (call ? "Log a call." : "Add a to-do.") + "</h2>" +
+      '<button type="button" class="icon-btn" data-action="close" aria-label="Close">' + icon("close") + "</button></div>" +
+      (call ? '<label class="field"><span class="eyebrow">Who called</span><input class="input" name="who" required autocomplete="off" placeholder="Marcus Lee"></label>' +
+        '<label class="field"><span class="eyebrow">What you owe them</span><input class="input" name="title" required autocomplete="off" placeholder="Send the revised delivery window"></label>'
+        : '<label class="field"><span class="eyebrow">What needs doing</span><input class="input" name="title" required autocomplete="off" placeholder="Start with a verb"></label>') +
+      '<div class="fields"><label class="field"><span class="eyebrow">Area</span><select class="input" name="area">' + areaOptions("") + "</select></label>" +
+      '<label class="field"><span class="eyebrow">Due</span><input class="input" type="date" name="due"></label>' +
+      '<label class="field full"><span class="eyebrow">Column</span><select class="input" name="column">' +
+      COLUMNS.filter(function (c) { return c.key !== "done"; }).map(function (c) { return '<option value="' + c.key + '"' + (c.key === "this_week" ? " selected" : "") + ">" + c.label + "</option>"; }).join("") + "</select></label></div>" +
+      '<div class="dlg-foot"><button type="button" class="btn btn-quiet" data-action="close">Cancel</button><button class="btn btn-primary" type="submit">' + (call ? "Log it" : "Add to board") + "</button></div></form>";
+    openDialog(dlg);
+    var first = dlg.querySelector("input"); if (first) first.focus();
+  }
+  function submitAdd(form) {
+    var f = new FormData(form), call = form.getAttribute("data-mode") === "call";
+    var title = String(f.get("title") || "").trim(); if (!title) return;
+    var who = String(f.get("who") || "").trim();
+    var id = genId(call ? "call" : "todo");
+    write("todos", id, {
+      title: title, detail: call ? "Logged from a phone call with " + who + "." : "", area: f.get("area") || null,
+      column: f.get("column") || "this_week", added_date: todayIso(), due_date: f.get("due") || null,
+      source_type: call ? "phone" : "manual", source_ref: (call ? "phone:" : "manual:") + todayIso() + ":" + id,
+      source_label: call ? who + " · phone call" : "Added by you",
+      confidence: "high", why: call ? "You logged this from a call." : "You added this."
+    }, true);
+    closeDialog(document.getElementById("addDlg"));
+    toast(call ? "Call logged" : "Added");
+  }
+
+  /* ------------------------------------------------------------------ Settings */
+  function prefs() { try { return JSON.parse(localStorage.getItem("hq.prefs") || "null") || {}; } catch (e) { return {}; } }
+  function defaults() {
+    var c = config();
+    return { layout: c.layout || (filled(LAYOUT_TOKEN) ? LAYOUT_TOKEN : "desk"), style: c.style || (filled(STYLE_TOKEN) ? STYLE_TOKEN : "clearwater") };
+  }
+  function savePrefs(patch) {
+    var d = defaults(), p = Object.assign(prefs(), patch, { base: d.layout + "/" + d.style });
+    try { localStorage.setItem("hq.prefs", JSON.stringify(p)); } catch (e) {}
+  }
+  // Apply the board defaults from meta/config unless this viewer picked something since they last changed.
+  function applyView() {
+    var d = defaults(), p = prefs(), root = document.documentElement;
+    var useLocal = p.base === d.layout + "/" + d.style;
+    root.setAttribute("data-layout", useLocal && p.layout ? p.layout : d.layout);
+    root.setAttribute("data-style", useLocal && p.style ? p.style : d.style);
+  }
+  function restyle(fn) {
+    var root = document.documentElement;
+    if (!REDUCED) root.classList.add("is-restyling");
+    fn();
+    setTimeout(function () { root.classList.remove("is-restyling"); mountOrbs(); }, 300);
+  }
+  function currentTheme() { return document.documentElement.getAttribute("data-theme") || "system"; }
+  function renderSettings() {
+    var root = document.documentElement, L = root.getAttribute("data-layout"), S = root.getAttribute("data-style"), T = currentTheme();
+    document.getElementById("settings").innerHTML =
+      '<div class="field"><span class="eyebrow">Layout</span><div class="seg" role="group" aria-label="Layout">' +
+      LAYOUTS.map(function (l) { return '<button data-action="set-layout" data-v="' + l.key + '" aria-pressed="' + (L === l.key) + '">' + l.label + "</button>"; }).join("") + "</div></div>" +
+      '<div class="field"><span class="eyebrow">Style</span><div class="swatches">' +
+      STYLES.map(function (s) {
+        return '<button class="swatch" data-action="set-style" data-v="' + s.key + '" aria-pressed="' + (S === s.key) + '"><span class="bars">' +
+          s.bars.map(function (b) { return '<i style="background:' + b + '"></i>'; }).join("") + "</span>" + s.label + "</button>";
+      }).join("") + "</div></div>" +
+      '<div class="field"><span class="eyebrow">Theme</span><div class="seg" role="group" aria-label="Theme">' +
+      [["light", "Light"], ["dark", "Dark"], ["system", "System"]].map(function (t) { return '<button data-action="set-theme" data-v="' + t[0] + '" aria-pressed="' + (T === t[0]) + '">' + t[1] + "</button>"; }).join("") + "</div></div>" +
+      '<p class="hint">Only changes this screen. To change it for good, tell Claude.</p>';
+  }
+  function toggleSettings(force) {
+    var pop = document.getElementById("settings"), btn = document.getElementById("settingsBtn");
+    var open = force != null ? force : pop.hidden;
+    if (open) renderSettings();
+    pop.hidden = !open; btn.setAttribute("aria-expanded", String(open));
+  }
+
+  /* ------------------------------------------------------------------ Clipboard */
+  function copyText(text, label) {
+    var done = function () { toast(label || "Copied"); };
+    var fallback = function () {
+      var ta = document.createElement("textarea"); ta.value = text; ta.setAttribute("readonly", "");
+      ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand("copy"); } catch (e) {}
+      document.body.removeChild(ta);
+      ok ? done() : toast("Select the text and copy it by hand");
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback); else fallback();
+  }
+
+  /* ------------------------------------------------------------------ Events (delegated) */
+  document.addEventListener("click", function (e) {
+    var t = e.target.closest("[data-action]");
+    var pop = document.getElementById("settings");
+    if (!pop.hidden && !e.target.closest(".pop-wrap")) toggleSettings(false);
+    if (!t) {
+      var card = e.target.closest(".card");
+      if (card && !e.target.closest("a")) openDetail(card.getAttribute("data-id"));
+      return;
+    }
+    var a = t.getAttribute("data-action"), id = t.getAttribute("data-id");
+    switch (a) {
+      case "toggle": e.stopPropagation(); toggleDone(id, t); break;
+      case "open": openDetail(id); break;
+      case "tab": ui.tab = t.getAttribute("data-tab"); renderAll(); break;
+      case "add": openAdd(t.getAttribute("data-mode")); break;
+      case "close": closeDialog(t.closest("dialog")); break;
+      case "move": moveTo(ui.openId, t.getAttribute("data-col")); closeDialog(document.getElementById("detail")); break;
+      case "delete": closeDialog(document.getElementById("detail")); deleteCard(id); break;
+      case "restore": write("todos", id, { deleted: false, deleted_date: null }); toast("Restored"); break;
+      case "goto-draft":
+        closeDialog(document.getElementById("detail")); ui.tab = "drafts"; renderAll();
+        var el = document.getElementById("draft-" + id); if (el) el.scrollIntoView({ behavior: REDUCED ? "auto" : "smooth", block: "start" });
+        break;
+      case "copy-draft":
+        // Copy what is on screen: an edit is saved on blur, so the snapshot can still hold the old body.
+        var d = state.drafts[id], ta = document.querySelector('[data-draft-body="' + id + '"]');
+        if (d) copyText(ta ? ta.value : draftText(d), "Draft copied"); break;
+      case "dismiss-draft":
+        var letter = t.closest(".letter"), prevStatus = (state.drafts[id] || {}).status;
+        collapse(letter, function () {
+          write("drafts", id, { status: "dismissed" });
+          toast("Draft dismissed", "Undo", function () { write("drafts", id, { status: prevStatus || "ready" }); });
+        });
+        break;
+      case "copy-prompt": var p = state.prompts[id]; if (p) copyText(p.prompt, "Prompt copied"); break;
+      case "copy-path": copyText((state.meta.weekly || {}).week_file_path || "", "Path copied"); break;
+      case "settings": toggleSettings(); break;
+      case "set-layout": savePrefs({ layout: t.getAttribute("data-v"), style: document.documentElement.getAttribute("data-style") });
+        document.documentElement.setAttribute("data-layout", t.getAttribute("data-v")); ui.tab = "today"; renderAll(); renderSettings(); break;
+      case "set-style": var v = t.getAttribute("data-v");
+        savePrefs({ style: v, layout: document.documentElement.getAttribute("data-layout") });
+        restyle(function () { document.documentElement.setAttribute("data-style", v); }); renderSettings(); break;
+      case "set-theme": var th = t.getAttribute("data-v"); savePrefs({ theme: th });
+        restyle(function () { if (th === "system") document.documentElement.removeAttribute("data-theme"); else document.documentElement.setAttribute("data-theme", th); });
+        renderSettings(); break;
+    }
+  });
+  // A compose link must carry the current body, including unsaved edits in the textarea.
+  document.addEventListener("pointerdown", function (e) {
+    var a = e.target.closest("[data-compose]"); if (!a) return;
+    var ta = document.querySelector('[data-draft-body="' + a.getAttribute("data-compose") + '"]');
+    var d = state.drafts[a.getAttribute("data-compose")];
+    if (ta && d) a.href = composeUrl(Object.assign({}, d, { body_edited: ta.value }));
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") { toggleSettings(false); }
+    var card = e.target.classList && e.target.classList.contains("card") ? e.target : null;
+    if (!card) return;
+    var id = card.getAttribute("data-id");
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openDetail(id); }
+    else if (e.key === "x" || e.key === "X") { e.preventDefault(); toggleDone(id, card.querySelector(".check")); }
+    else if (["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight", "j", "k"].indexOf(e.key) >= 0) {
+      var all = Array.prototype.slice.call(document.querySelectorAll("#view .card"));
+      var i = all.indexOf(card), step = (e.key === "ArrowDown" || e.key === "ArrowRight" || e.key === "j") ? 1 : -1;
+      var next = all[i + step]; if (next) { e.preventDefault(); next.focus(); }
+    }
+  });
+  document.addEventListener("focusout", function (e) {
+    var el = e.target;
+    if (el.hasAttribute && el.hasAttribute("data-draft-body")) {
+      var id = el.getAttribute("data-draft-body"), d = state.drafts[id];
+      if (d && el.value !== draftText(d)) write("drafts", id, { body_edited: el.value, status: "edited" });
+      if (ui.deferred) { ui.deferred = false; setTimeout(renderAll, 0); }
+    }
+    if (el.hasAttribute && el.hasAttribute("data-field")) saveDetailField(el);
+  });
+  document.addEventListener("change", function (e) {
+    var el = e.target;
+    if (el.matches("select[data-field], input[type=date][data-field]")) saveDetailField(el);
+    if (el.hasAttribute("data-ck")) {
+      var c = state.todos[ui.openId]; if (!c) return;
+      var list = (c.checklist || []).map(function (x) { return Object.assign({}, x); });
+      list[+el.getAttribute("data-ck")].done = el.checked;
+      el.closest(".ck").classList.toggle("done", el.checked);
+      write("todos", ui.openId, { checklist: list });
+    }
+  });
+  document.addEventListener("keydown", function (e) {
+    var el = e.target;
+    if (e.key === "Enter" && el.hasAttribute && el.hasAttribute("data-add-step") && el.value.trim()) {
+      e.preventDefault();
+      var c = state.todos[ui.openId]; if (!c) return;
+      var list = (c.checklist || []).concat([{ text: el.value.trim(), done: false }]);
+      // Show the step now; the live snapshot that confirms the write can land after the reopen.
+      c.checklist = list; openDetail(ui.openId);
+      write("todos", ui.openId, { checklist: list });
+    }
+    if (e.key === "Enter" && el.classList && el.classList.contains("title-input")) { e.preventDefault(); el.blur(); }
+  });
+  document.addEventListener("submit", function (e) {
+    if (e.target.hasAttribute("data-add-form")) { e.preventDefault(); submitAdd(e.target); }
+  });
+  document.getElementById("detail").addEventListener("close", function () { ui.openId = null; });
+
+  // Cursor-lit border on the "now" card: write the pointer position on the card itself so
+  // style recalculation stays local to it.
+  document.addEventListener("pointermove", function (e) {
+    var card = e.target.closest && e.target.closest(".card.is-now"); if (!card) return;
+    var r = card.getBoundingClientRect();
+    card.style.setProperty("--mx", (e.clientX - r.left) + "px"); card.style.setProperty("--my", (e.clientY - r.top) + "px");
+  });
+  // Tooltips: after the first one shows, the next ones skip the 300ms delay for a moment.
+  var warmTimer = null;
+  document.addEventListener("pointerover", function (e) {
+    if (!e.target.closest || !e.target.closest(".src[data-tip]")) return;
+    clearTimeout(warmTimer);
+    warmTimer = setTimeout(function () { document.body.classList.add("tips-warm"); }, 320);
+  });
+  document.addEventListener("pointerout", function (e) {
+    if (!e.target.closest || !e.target.closest(".src[data-tip]")) return;
+    clearTimeout(warmTimer);
+    warmTimer = setTimeout(function () { document.body.classList.remove("tips-warm"); }, 700);
+  });
+
+  // Drag a card between columns (columns layout) or between areas (desk layout).
+  var dragId = null;
+  document.addEventListener("dragstart", function (e) {
+    var card = e.target.closest && e.target.closest(".card[draggable]"); if (!card) return;
+    dragId = card.getAttribute("data-id");
+    e.dataTransfer.effectAllowed = "move";
+    try { e.dataTransfer.setData("text/plain", dragId); } catch (err) {}
+  });
+  document.addEventListener("dragover", function (e) {
+    var zone = dragId && e.target.closest("[data-drop-col],[data-drop-area]"); if (!zone) return;
+    e.preventDefault();
+    document.querySelectorAll(".drop-on").forEach(function (z) { if (z !== zone) z.classList.remove("drop-on"); });
+    zone.classList.add("drop-on");
+  });
+  document.addEventListener("drop", function (e) {
+    var zone = dragId && e.target.closest("[data-drop-col],[data-drop-area]"); if (!zone) return;
+    e.preventDefault();
+    if (zone.hasAttribute("data-drop-col")) moveTo(dragId, zone.getAttribute("data-drop-col"));
+    else if ((state.todos[dragId] || {}).area !== (zone.getAttribute("data-drop-area") || undefined)) write("todos", dragId, { area: zone.getAttribute("data-drop-area") || null });
+  });
+  document.addEventListener("dragend", function () { dragId = null; document.querySelectorAll(".drop-on").forEach(function (z) { z.classList.remove("drop-on"); }); });
+
+  /* ------------------------------------------------------------------
+     Demo data: an invented owner, Jordan, so a preview is never an empty
+     shell. Dates are relative to today so the board always looks current.
+     ------------------------------------------------------------------ */
+  function loadDemo() {
+    state.demo = true; state.live = false;
+    var at = function (dayOffset, h, m) { var d = new Date(); d.setDate(d.getDate() + dayOffset); d.setHours(h, m, 0, 0); return d.toISOString(); };
+    var link = "https://outlook.office.com/mail/";
+    // The most recent librarian run before now, so the freshness line is never in the future.
+    var runs = [[0, 17, 3, "evening"], [0, 12, 3, "midday"], [0, 7, 2, "morning"], [-1, 17, 3, "evening"]];
+    var lastRun = runs.map(function (r) { return { at: at(r[0], r[1], r[2]), variant: r[3] }; }).filter(function (r) { return Date.parse(r.at) < Date.now(); })[0];
+    var T = [
+      ["t1", "Send Sam the Q3 store letter", "Stores", "this_week", "outlook", "Sam Ortiz · RE: Q3 store letter", -1, 0, "high", { draft_id: "d1", why: "Sam asked you by name for it by Friday", detail: "Sam needs the Q3 letter for the regional managers before Friday's call. You said Tuesday you would send it Thursday." }],
+      ["t2", "Confirm caterer headcount with Priya", "Fall Event", "inbox", "outlook", "Priya Shah · Fall Event catering", 0, 1, "high", { draft_id: "d3", why: "Priya needs a number to lock the order", detail: "Priya asked for a final headcount so the caterer can hold the date." }],
+      ["t3", "Reply to Oak Park landlord on renewal timing", "Vendors", "this_week", "outlook", "Alan Brooks · Oak Park renewal", -2, 3, "medium", { draft_id: "d2", why: "Alan asked when you can meet to talk renewal", detail: "Alan wants a time next week to walk through the renewal. Terms are in the original message [see original]." }],
+      ["t4", "Review: message asks for an unusual action", "", "inbox", "outlook", "Unknown sender · urgent request", 0, null, null, { suspicious: true, suspicious_reason: "It asks you to buy gift cards urgently and reply with the codes, from an address outside your company.", why: "Flagged by the morning librarian" }],
+      ["t5", "Share interview notes on store manager candidate", "People", "this_week", "meeting", "Hiring sync · candidate debrief", -2, 2, "medium", { why: "You said in the hiring sync you would send notes", detail: "Dana asked everyone on the panel to share notes before the decision on Monday." }],
+      ["t6", "Holiday staffing numbers", "People", "waiting_on", "teams", "Dana Kim · holiday staffing", -11, null, null, { waiting_on: "Dana Kim", waiting_since: addDays(-9), why: "You asked Dana for the numbers" }],
+      ["t7", "Pick the Fall Event venue layout", "Fall Event", "this_week", "meeting", "Event planning · Sep 30 meeting", -1, 5, "medium", { confidence: "medium", why: "Sounded like your call in the planning meeting", checklist: [{ text: "Compare the two floor plans", done: true }, { text: "Check stage power", done: false }, { text: "Send pick to Priya", done: false }] }],
+      ["t8", "Call Marcus back about the Westfield delivery", "Vendors", "inbox", "phone", "Marcus Lee · phone call", 0, 2, "medium", { why: "You logged this from a call" }],
+      ["t9", "Display fixture quote", "Vendors", "waiting_on", "outlook", "Reyna Display · fixture quote", -4, null, null, { waiting_on: "Reyna Display", waiting_since: addDays(-3), why: "You asked for a revised quote" }],
+      ["t10", "Draft talking points for Monday managers call", "Stores", "later", "brain", "Your notes · managers call", -16, null, "low", { why: "From your note about the Monday call" }],
+      ["t11", "Answer Lena about the window display photos", "Stores", "inbox", "pocket", "Store walk recording · Lena", -1, 4, null, { confidence: "medium", why: "Heard on your store walk recording" }],
+      ["t12", "Approve October store hours", "Stores", "done", "outlook", "Sam Ortiz · October hours", -3, null, null, { done_date: addDays(-1), why: "Sam asked for approval" }],
+      ["t13", "Renew the parking permit", "", "inbox", "manual", "Added by you", -5, null, null, { deleted: true, deleted_date: addDays(-1) }]
+    ];
+    state.todos = {};
+    T.forEach(function (r) {
+      state.todos[r[0]] = Object.assign({
+        id: r[0], title: r[1], area: r[2] || null, column: r[3], source_type: r[4], source_label: r[5], added_date: addDays(r[6]),
+        due_date: r[7] === null ? null : addDays(r[7]), priority: r[8], confidence: "high",
+        source_link: r[4] === "outlook" ? link : (r[4] === "teams" ? "https://teams.microsoft.com/" : null)
+      }, r[9]);
+    });
+    state.drafts = {
+      d1: { id: "d1", card_id: "t1", to: [{ name: "Sam Ortiz", address: "sam.ortiz@example.com" }], subject: "RE: Q3 store letter",
+        body: "Hi Sam,\n\nThe Q3 letter for the regional managers is [attached]. The two changes from last quarter are the new weekend hours and the holiday staffing plan, both on page one.\n\nHappy to walk anyone through it before Friday.\n\nJordan",
+        status: "ready", thread_link: link, why: "Sam asked for the Q3 letter by Friday; you said Tuesday you would send it Thursday.", confidence: "high", assumptions: ["the letter is attached before sending"], created_at: lastRun.at },
+      d2: { id: "d2", card_id: "t3", to: [{ name: "Alan Brooks", address: "alan@oakparkproperties.example" }], subject: "RE: Oak Park renewal",
+        body: "Hi Alan,\n\nThanks for reaching out. I can meet [Tuesday 10:00 or Wednesday 2:00] next week to talk through the renewal. Let me know which works and I will send an invite.\n\nJordan",
+        body_edited: "Hi Alan,\n\nThanks for reaching out. Tuesday at 10:00 works on my end to talk through the renewal. I will send an invite.\n\nBest,\nJordan",
+        status: "edited", thread_link: link, why: "Alan asked when you can meet about the renewal.", confidence: "medium", assumptions: ["dropped cc: leasing@oakpark"], created_at: at(-1, 17, 4) },
+      d3: { id: "d3", card_id: "t2", to: [{ name: "Priya Shah", address: "priya.shah@example.com" }], subject: "RE: Fall Event catering",
+        body: "Hi Priya,\n\nWe are at [120] confirmed. I will send the final number [by when] so the caterer can lock the order.\n\nJordan",
+        status: "ready", thread_link: link, why: "Priya needs a headcount to hold the caterer.", confidence: "high", assumptions: [], created_at: lastRun.at }
+    };
+    state.prompts = {
+      p1: { id: "p1", title: "Prep me for the Monday managers call", prompt: "Look at this week's store emails and my notes, then give me three talking points for Monday's managers call and one question to ask.", why: "You run this call every Monday.", area: "Stores", created_by: "setup" },
+      p2: { id: "p2", title: "What did I promise people this week?", prompt: "List every promise I made this week in email, Teams, or meetings, with who I made it to and when it is due.", why: "Catches the small yeses before they slip.", area: "", created_by: "setup" },
+      p3: { id: "p3", title: "What changed in the Fall Event plan?", prompt: "Summarize what changed in the Fall Event plan since last Friday, and what still needs a decision from me.", why: "The event thread moves fast.", area: "Fall Event", created_by: "recap" }
+    };
+    var wk = new Date();
+    state.meta = {
+      config: { owner: "Jordan Reyes", first_name: "Jordan", sources: ["outlook", "teams", "meeting", "brain", "phone", "pocket"],
+        areas: ["Stores", "Fall Event", "People", "Vendors"], hq_version: "2026-10-01-v1", voice_profile_path: "" },
+      sweep: { last_sweep_at: lastRun.at, last_variant: lastRun.variant, sweep_count: 23, hq_version: "2026-10-01-v1",
+        sweep_started_at: /sweep/.test(location.hash) ? new Date(Date.now() - 60000).toISOString() : null },
+      brief: { focus: "Three things need you today: Sam's Q3 letter, Priya's catering headcount, and one message that needs a careful look." },
+      brain: { updated: todayIso() },
+      weekly: { week: wk.getFullYear() + "-W" + isoWeek(wk), week_file_path: "notes/hq/weeks/" + wk.getFullYear() + "-W" + pad(isoWeek(wk)) + ".md", closed: 14, added: 11, drafts_made: 6, drafts_sent: 3,
+        summary_text: "A steady week, and the Fall Event is the open thread. You closed October store hours and both vendor reviews. Venue layout and catering headcount land early next week, and Dana still owes the holiday staffing numbers." }
+    };
+    state.loaded = true;
+    document.getElementById("sampleChip").hidden = false;
+    if (!filled(OWNER_TOKEN)) document.title = "Jordan's HQ";
+    applyView();
+    // Preview options for demo links and screenshots: #demo&layout=columns&style=briefing&theme=dark&tab=drafts (&empty for a first-day board)
+    var q = new URLSearchParams(location.hash.replace(/^#demo&?/, "")), root = document.documentElement;
+    if (q.get("layout")) root.setAttribute("data-layout", q.get("layout"));
+    if (q.get("style")) root.setAttribute("data-style", q.get("style"));
+    if (q.get("theme")) root.setAttribute("data-theme", q.get("theme"));
+    if (q.get("tab")) ui.tab = q.get("tab");
+    if (q.has("empty")) { state.todos = {}; state.drafts = {}; state.meta.brief = {}; }
+    renderAll();
+  }
+
+  /* ------------------------------------------------------------------
+     Boot. claude.use("db") resolves null where db cannot run; a preview
+     outside claude.ai has no window.claude at all. Either way, demo data.
+     ------------------------------------------------------------------ */
+  function subscribe() {
+    var firstTodos = true;
+    var handleErr = function (what) { return function (err) { console.error(what + " snapshot error", err); }; };
+    ["todos", "drafts", "prompts"].forEach(function (col) {
+      db.collection(col).onSnapshot(function (snap) {
+        var next = {};
+        snap.docs.forEach(function (d) { next[d.id] = Object.assign({ id: d.id }, d.data()); });
+        state[col] = next;
+        if (col === "todos" && firstTodos) { firstTodos = false; state.loaded = true; }
+        scheduleRender();
+      }, handleErr(col));
+    });
+    ["config", "sweep", "brief", "brain", "weekly"].forEach(function (key) {
+      db.doc("meta/" + key).onSnapshot(function (snap) {
+        state.meta[key] = snap.exists ? snap.data() : null;
+        if (key === "config") applyView();
+        scheduleRender();
+      }, handleErr("meta/" + key));
+    });
+  }
+  async function boot() {
+    renderAll();
+    if (/^#demo/.test(location.hash)) { loadDemo(); return; }
+    var api = null;
+    try {
+      if (window.claude && typeof window.claude.use === "function") {
+        api = await Promise.race([window.claude.use("db"), new Promise(function (r) { setTimeout(function () { r(null); }, 5000); })]);
+      }
+    } catch (e) { api = null; }
+    // A filled template is someone's real board: never dress it in Jordan's sample cards.
+    if (!api && filled(OWNER_TOKEN)) { state.unavailable = true; state.loaded = true; renderAll(); return; }
+    if (!api) { loadDemo(); return; }
+    db = api; state.live = true;
+    subscribe();
+  }
+  boot();
+  // Greeting and "due today" depend on the clock; refresh them when the tab comes back.
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") scheduleRender(); });
+})();
+</script>
+</body>
+</html>
