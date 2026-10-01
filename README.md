@@ -33,15 +33,16 @@ Seven skills that run in order, from a vague idea to a finished output that impr
 
 ## Also in the box
 
-Five standalone skills that do not change:
+Six standalone skills that work on their own:
 
 | Skill | What it does |
 |---|---|
 | `fresh-start` | Wraps the session into a short handoff so you can clear context or switch between Cowork and Code without losing anything. |
 | `model-guide` | Tells you which model fits the task and how to delegate to agents without burning your usage limits. Default answer: Sonnet. |
 | `meeting-prep` | Preps you for one meeting from your brain, the last meeting, and the email thread. Asks what kind of prep you want before writing it. |
+| `personal-hq` | Builds a private board of what is yours to do, kept current three times a day from your Outlook, Teams, and meetings, with every item linked to its source and easy replies pre-drafted in your voice. Nothing is ever sent for you. Say "build my personal HQ". |
 | `learn-my-voice` | Reads emails you actually sent and saves a style profile of how you write into your brain. Run it once, then re-run when drafts stop sounding right. |
-| `write-in-my-voice` | Drafts and replies to email in that voice, checking every draft against the profile before showing it. Never sends without your go. |
+| `write-in-my-voice` | Drafts and replies to email in that voice, checking every draft against the profile before showing it. Personal HQ drafts use the same rules. Never sends without your go. |
 
 
 ## Agents
