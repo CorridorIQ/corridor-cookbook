@@ -137,7 +137,7 @@ When it finishes, show what landed in three to five lines, each with why:
 > - **Send Dana the Q4 staffing plan**: Dana asked you by name in Monday's ops sync.
 > - **Confirm a time for the Elm Ridge walkthrough**: Sam emailed you directly. There's a reply ready in Drafts.
 >
-> Anything there that isn't yours? Tell me and it's gone for good.
+> If any of these isn't yours, just tell me and I'll take it off for good.
 
 If they say a card isn't theirs: delete it and offer one "Leave out" line in their words.
 
