@@ -7,18 +7,10 @@ description: Draft or reply to an email as the user, using the style profile sav
 
 Read the style profile before writing. Every time, including the second email in the same session, because a voice held only in the conversation drifts back to default after a few messages. The file is the only thing that holds it.
 
-1. **Load the profile.** If no personal brain connector is present at all, say so in one line, ask for 3 sample emails plus the recipient and context, and skip every brain step below. Otherwise call `personal_read` on `notes/my-email-voice.md`. If it is missing, say so and offer to run `learn-my-voice`, which builds it in a few minutes from their sent mail. If they want the draft now, ask for 3 emails they wrote, use those for this draft only, and tell them the result is a one-off guess rather than their voice.
+1. **Draft with the core.** Follow `references/draft-core.md` in chat mode: load the profile, load the context, draft, self-check, show. Personal HQ librarians use the same file, so one profile drives every draft. Its hard rules matter most: unknown facts in `[brackets]`, never an invented date, amount, or promise, and no account numbers, secrets, health, or legal details.
 
-2. **Load the context.** Call `cold_start_context`, then `personal_search` for the recipient, their company, and the subject. If the email follows a meeting, read that meeting's summary with `meeting_details`. If it continues a thread, read the thread. An email in the right voice with the wrong facts is worse than no draft.
+2. **Send only on their word.** Wait for an explicit yes, then create the draft or send it through the connected mail account. Silence is not a yes. In HQ mode the draft goes to the board, never to a mail account.
 
-3. **Draft it.** Match the structure, not just the wording: their greeting for this audience, their opening move, their sentence length, how they make the ask, their sign-off. Match the length of their real emails, almost always shorter than a first AI draft. Where the profile says nothing, stay plain.
+3. **Feed corrections back.** If they rewrite any part of it, ask what sounded off, then `personal_read` `notes/my-email-voice.md` fresh. Offer to add one rule to `## Learned from edits`, quoting the line they wrote as proof, and set `version` and `last_correction` to today with `personal_update`. Keep that section at 10 rules: a new rule replaces the one it contradicts, or else the oldest. One correction per email compounds faster than a perfect first profile.
 
-4. **Self-check.** Reread the draft line by line against the profile's avoid-list and its "words they never use", and rewrite every hit. Then three checks: their greeting and sign-off, within their normal length, and would they have written the first sentence themselves. Show it only once it passes.
-
-5. **Show it as plain text** so they can read it as an email. No commentary above it. Below it, one line naming anything you were unsure of, such as a fact you could not confirm.
-
-6. **Send only on their word.** Wait for an explicit yes, then create the draft or send it through the connected mail account. Silence is not a yes.
-
-7. **Feed corrections back.** If they rewrite any part of it, ask what sounded off, `personal_read` `notes/my-email-voice.md` fresh, and offer to add that rule with `personal_update`. One correction per email compounds faster than a perfect first profile.
-
-Done when the draft passes the self-check against the profile, the facts trace to something you read, and the user could send it without editing.
+Done when the draft passes the core's self-check, every fact traces to something you read or sits in brackets, nothing goes out without an explicit yes, and the user could send it without editing.
