@@ -7,6 +7,21 @@ Each entry has:
 - `Kind: hands-on` when it changes the shape of a task prompt or the version check itself. The morning check never applies it; it emails the owner to say "update my HQ".
 - A rollback is a new, higher version whose entry says "Reverted the change from <version> because <one plain reason>."
 
+## 2026-10-01-v2
+
+Kind: hands-on (settings in your notes moved to a new format, so the update check changed)
+
+In plain words:
+- Your HQ can draft emails for most of your open to-dos at once, in your writing style. Just say "draft my emails".
+- Updates now draft for older to-dos too, newest first, and can write a fresh email for something you promised in a meeting.
+- Meeting times in drafts come from your real calendar, and two drafts never offer the same time.
+- Your HQ checks your calendar and sent mail first, so it stops asking you to book meetings you already booked or send things you already sent.
+- Your first board is fuller: it reads meeting transcripts and aims for three to five items per area.
+- Update times now follow daylight saving on their own.
+- Nothing is ever sent for you.
+
+For maintainers: from the first client pilot. `drafting.md` is now the one drafting spec and builds the voice profile itself (no other skill needed). HQ settings moved from frontmatter to body lines because the brain rejects non-standard keys. Schedules use `CRON_TZ`. New draft fields: `kind`, `ask_date`, `slots_offered`, `depends_on`; new board doc `meta/slots`. The board page is unchanged and ignores the new fields; Mark as sent, the Drafts filters, and age display are a follow-up.
+
 ## 2026-10-01-v1
 
 Kind: hands-on (first release, set up by hand)

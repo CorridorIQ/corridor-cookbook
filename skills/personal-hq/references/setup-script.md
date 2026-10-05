@@ -39,6 +39,8 @@ Let them talk. Do not interrupt with follow-ups. One early user answered with th
 - **Times** ("I'm in by 6:30" moves the morning run earlier).
 - **"Start fresh"** (sets the first look-back to 0 days instead of 14).
 
+If their areas are clients or accounts, find each client's contacts and email domains (`personal_search`, recent mail) and add the client line under "What counts as mine" (`brain-files.md`). Without it, asks to "you guys" from a client get missed and the first board feels sparse.
+
 ## Moment 3: one confirmation
 
 One question, free text allowed:
@@ -91,7 +93,7 @@ Skip this moment if `notes/my-email-voice.md` already exists ("Your drafts will 
 
 > Want me to study a dozen emails you've sent so your drafts sound like you? It takes about three minutes.
 
-- Yes: run `learn-my-voice` now. Keep its read-back to one short statement they can ignore: "Here's how you write. Tell me any time something sounds off." Do not wait for an answer.
+- Yes: build the profile now, following "The voice profile" in `drafting.md`. Narrate "Reading a dozen of your sent emails now." Keep its read-back to one short statement they can ignore: "Here's how you write. Tell me any time something sounds off." Do not wait for an answer.
 - No: "No problem. Drafts will be plain and short until you say 'learn my voice'."
 
 ## Moment 7: the Sonnet tap
@@ -141,6 +143,22 @@ When it finishes, show what landed in three to five lines, each with why:
 
 If they say a card isn't theirs: delete it and offer one "Leave out" line in their words.
 
+## The drafting offer (after the back pass, before the close)
+
+> Your board has [N] things on it. Want me to draft emails for as many as I can now? Each one uses your writing style, your calendar for meeting times, and what your notes know about the person. Nothing gets sent. It takes about five minutes.
+
+Options: "Draft them" and "Not now". On yes, narrate one line ("Drafting the newest ten now."), run the pass in `drafting.md`, then show three:
+
+> Ten drafts are ready in your Drafts tab. For example:
+> - **To Sam, re: Elm Ridge walkthrough**: offers Tuesday 10am or Thursday 2pm, both open on your calendar.
+> - **To Dana, new email: the staffing plan**: you promised it in Monday's sync. Skim before sending.
+>
+> Edit any draft right on the board, then copy it into Outlook. I'll learn from what you change.
+
+If a card already looked done (you found the sent email or the invite), say so and offer to close it. On "Not now": "Any time, just say 'draft my emails'."
+
+When they later say "I sent it, waiting to hear back", offer: "Want me to move it to Waiting on, so it nudges you if they go quiet?"
+
 If you are sharing your screen in a meeting, say before the back pass shows real cards: "Your real email will show up on the board next. Want to keep sharing, or look at it after?"
 
 ## The close (three lines plus one)
@@ -151,7 +169,7 @@ If you are sharing your screen in a meeting, say before the back pass shows real
 >
 > To change anything, say it here or comment on the board. Try "make the cards bigger" or "leave out vendor newsletters". Say "check my HQ" any time something looks off.
 >
-> And for phone calls, say "I just got off a call with" and the name.
+> And for phone calls, say "I just got off a call with" and the name. To clear more off your plate, say "draft my emails".
 
 Offer to pin the board: "Want me to pin your HQ to your sidebar?" Pin only on yes.
 

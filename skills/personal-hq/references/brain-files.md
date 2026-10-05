@@ -2,19 +2,19 @@
 
 Personal HQ keeps two kinds of state. Today's cards and drafts live on the board. Everything that should still matter next month lives in the owner's brain as plain Markdown, so it survives a new board, a new scheduler, or a move to another harness. No card is ever mirrored into the brain.
 
-Every file below sits under `notes/hq/`, has YAML frontmatter, and ends with a `## Related` section of standard Markdown links, `[Preferences](notes/hq/preferences.md)`, because the brain server expects them, not wikilinks. Frontmatter carries the server's required keys (title, type, status, owner, created, updated, confidence, sources, tags, links) plus the HQ keys shown below. `personal_update` stamps `updated` itself: never edit a date by hand. The hub links all of them. Write new files with `personal_write`; change existing ones with `personal_read` then `personal_update`, so nothing the owner added is lost.
+Every file below sits under `notes/hq/`, has YAML frontmatter, and ends with a `## Related` section of standard Markdown links, `[Preferences](notes/hq/preferences.md)`, because the brain server expects them, not wikilinks. Frontmatter carries only the server's standard keys (title, type, status, owner, created, updated, confidence, sources, tags, links); the brain rejects any other key. HQ settings (`board_url`, `hq_version`, `auto_updates`, `timezone`) go as plain `key: value` lines at the top of the body instead. `personal_update` stamps `updated` itself: never edit a date by hand. The hub links all of them. Write new files with `personal_write`; change existing ones with `personal_read` then `personal_update`, so nothing the owner added is lost.
 
 ## Who writes what
 
 | File | Written by | When | Never written by |
 | --- | --- | --- | --- |
-| `notes/hq/hq.md` | Setup; Friday recap (week link, `updated`); evening librarian (`updated`, only when it wrote); morning version check (`hq_version`); "roll back my HQ" (`auto_updates`) | Setup, Fridays, evenings with writes, update mornings | Morning and midday card work |
+| `notes/hq/hq.md` | Setup; Friday recap (week link, `updated`); evening librarian (`updated`, only when it wrote); morning version check (the `hq_version:` line); "roll back my HQ" (the `auto_updates:` line) | Setup, Fridays, evenings with writes, update mornings | Morning and midday card work |
 | `notes/hq/preferences.md` | Setup; this skill in chat when the owner asks for a change | Setup, then on request only | Any scheduled task. Librarians read it every run and only suggest "possible preference: ..." in `meta/sweep.summary`. |
 | `notes/hq/learnings.md` | Setup (empty); evening librarian | Evenings, at most 2 lines a day | Anything that copies text from a message |
 | `notes/hq/opportunities.md` | Setup (empty); Friday recap | Fridays, at most 3 lines a week | Librarians |
 | `notes/hq/weeks/YYYY-Www.md` | Friday recap | Fridays | Anyone else |
 | `notes/hq/backups/<version>.md` | Morning version check, before it patches | Update mornings | Anyone else |
-| `notes/my-email-voice.md` | `learn-my-voice`; evening librarian appends to `## Learned from edits` only | Setup or on request; at most one rule a week | Anything that copies text the owner received |
+| `notes/my-email-voice.md` | Setup or "learn my voice" (`drafting.md`); evening librarian appends to `## Learned from edits` only | Setup or on request; at most one rule a week | Anything that copies text the owner received |
 
 People, project, and decision pages elsewhere in the brain get at most 5 evening writes a day (librarian STEP 13), each checked with `personal_search` first.
 
@@ -24,9 +24,6 @@ People, project, and decision pages elsewhere in the brain get at most 5 evening
 ---
 title: My Personal HQ
 owner: Jordan Reyes
-board_url: https://claude.ai/artifact/abc123
-hq_version: 2026-10-01-v1
-auto_updates: on
 type: note
 status: active
 created: 2026-10-01
@@ -37,6 +34,10 @@ tags: [personal-hq]
 links: [notes/hq/preferences.md, notes/hq/learnings.md, notes/hq/opportunities.md]
 ---
 Last upkeep: 2026-10-01
+
+board_url: https://claude.ai/artifact/abc123
+hq_version: 2026-10-01-v2
+auto_updates: on
 
 Jordan's Personal HQ: a private board that three librarians keep current from Outlook, Teams, meetings, and this brain, plus a Friday recap.
 
@@ -54,19 +55,29 @@ Jordan's Personal HQ: a private board that three librarians keep current from Ou
 - (up to 5 key people and project pages from setup)
 ```
 
-`auto_updates` is `on` or `paused`. Only "roll back my HQ" pauses it and only "check my HQ" turns it back on, with the owner's yes. Remove the `(the Friday recap ...)` hint line when the first week link is added. If `notes/my-email-voice.md` does not exist yet, leave its line out and add it when `learn-my-voice` runs.
+`auto_updates` is `on` or `paused`. Read and change these lines with `personal_read` and `personal_update`, like any body text. Only "roll back my HQ" pauses it and only "check my HQ" turns it back on, with the owner's yes. Remove the `(the Friday recap ...)` hint line when the first week link is added. If `notes/my-email-voice.md` does not exist yet, leave its line out and add it when the voice profile is built.
 
 ## Settings: `notes/hq/preferences.md`
 
 ```markdown
 ---
 title: HQ preferences
+type: note
+status: active
 owner: Jordan Reyes
-timezone: America/Chicago
+created: 2026-10-01
 updated: 2026-10-01
+confidence: high
+sources: [setup]
+tags: [personal-hq]
+links: [notes/hq/hq.md]
 ---
+timezone: America/Chicago
+
 ## What I want each morning
 "A holistic picture of what I've got in the works, without every single follow-up." (Jordan, setup, 2026-10-01)
+- Aim for the top 3 to 5 open to-dos per area.
+- Read meeting transcripts, not just summaries.
 
 ## Areas
 - Operations (9 communities; executive directors report in)
@@ -79,6 +90,7 @@ updated: 2026-10-01
 ## Key people and projects
 - Marcus Lee, VP Operations: [Marcus lee](people/marcus-lee.md)
 - Q4 owner reviews: [Q4 owner reviews](projects/q4-owner-reviews.md)
+- Client email domains (when areas are clients): oakparkliving.com, harborpoint.com
 
 ## Sources
 outlook, teams, meeting, brain, phone
@@ -89,6 +101,11 @@ outlook, teams, meeting, brain, phone
 
 ## What counts as mine
 - Asked of me by name, my own promises, or clearly a priority in my areas. Not "can someone" to a group, unless it is a project I own.
+- Every promise I made in a meeting or email: recaps, intros, scheduling, sending something.
+- Steps I owe in a client's onboarding, and anything blocking a client.
+- When my areas are clients: an unaddressed ask from a client's contact to my company or team ("can you guys", "Jordan and Sam") counts as mine, unless a teammate clearly took it.
+- Before making a scheduling to-do or draft, check my calendar. If I already organized an event with that person after the ask, it is done.
+- If I close a to-do or say I handled it by phone, it never comes back.
 
 ## Schedule
 - Morning 7:00, midday 12:00, evening 17:00, weekdays. Friday recap 16:00. Times are America/Chicago.
@@ -102,7 +119,8 @@ Rules:
 - Areas: 2 to 8, in the owner's words. These also fill the board's `__AREAS__` token and `meta/config.areas`; keep all three in step when one changes.
 - Leave out: the owner's own words, quoted where possible, then the policy line exactly as above. If they named nothing, write only the policy line.
 - Sources: ids from `outlook | teams | meeting | brain | phone | pocket`. These match `meta/config.sources` and the board's source chips.
-- Schedule: local times the owner agreed to. "Check my HQ" compares each task's UTC schedule against this section and the current clock offset.
+- Schedule: local times the owner agreed to. Tasks use `CRON_TZ=<timezone>` schedules, so these times hold through daylight saving.
+- The "What counts as mine" lines after the first are defaults from the pilot. Keep the client line only when areas are clients or accounts; drop any line the owner disagrees with.
 - The first-run lookback is not here. It is `meta/config.lookback_days`, used once.
 
 ## Learned patterns: `notes/hq/learnings.md`
