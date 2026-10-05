@@ -36,10 +36,10 @@ links: [notes/hq/preferences.md, notes/hq/learnings.md, notes/hq/opportunities.m
 Last upkeep: 2026-10-01
 
 board_url: https://claude.ai/artifact/abc123
-hq_version: 2026-10-01-v2
+hq_version: 2026-10-06-v1
 auto_updates: on
 
-Jordan's Personal HQ: a private board that three librarians keep current from Outlook, Teams, meetings, and this brain, plus a Friday recap.
+Jordan's Personal HQ: a private board that three librarians keep current from Outlook, Teams, meetings, and this brain, plus a Friday recap and a drafter for the board's Draft this button.
 
 ## Files
 - [Preferences](notes/hq/preferences.md): what to look for and what to leave out
@@ -76,7 +76,7 @@ timezone: America/Chicago
 
 ## What I want each morning
 "A holistic picture of what I've got in the works, without every single follow-up." (Jordan, setup, 2026-10-01)
-- Aim for the top 3 to 5 open to-dos per area.
+- Up to 3 to 5 open to-dos per area, only real ones.
 - Read meeting transcripts, not just summaries.
 
 ## Areas
@@ -94,6 +94,10 @@ timezone: America/Chicago
 
 ## Sources
 outlook, teams, meeting, brain, phone
+
+## Metrics
+- Daily census (email from reports@oakparkliving.com): occupancy %, move-ins, move-outs
+- Weekly ops summary (Teams, Operations channel): open work orders
 
 ## Leave out
 - Personal email from family (Jordan's words: "anything from my sister")
@@ -119,6 +123,7 @@ Rules:
 - Areas: 2 to 8, in the owner's words. These also fill the board's `__AREAS__` token and `meta/config.areas`; keep all three in step when one changes.
 - Leave out: the owner's own words, quoted where possible, then the policy line exactly as above. If they named nothing, write only the policy line.
 - Sources: ids from `outlook | teams | meeting | brain | phone | pocket`. These match `meta/config.sources` and the board's source chips.
+- Metrics: only when `metrics` is in `meta/config.sections`. One line per recurring report the owner already receives: its name, where it arrives, and the numbers to show. The librarians copy those numbers as written, with the report's date and link, and never put a dollar amount on the board ("[see report]" instead). Leave the section out when metrics are off.
 - Schedule: local times the owner agreed to. Tasks use `CRON_TZ=<timezone>` schedules, so these times hold through daylight saving.
 - The "What counts as mine" lines after the first are defaults from the pilot. Keep the client line only when areas are clients or accounts; drop any line the owner disagrees with.
 - The first-run lookback is not here. It is `meta/config.lookback_days`, used once.
@@ -135,13 +140,14 @@ Patterns the evening librarian noticed in how Jordan works. Each line names what
 
 ## Learnings
 - 2026-10-08: Deletes cards from the facilities vendor portal; treat its notices as noise. Evidence: deleted 4 such cards this week.
+- 2026-10-14: Sam Ortiz (sam@harborpoint.com): often handled outside email; check Sent Items, the calendar, and Teams before drafting. Evidence: 3 drafts dismissed as handled elsewhere since Oct 2.
 
 ## Related
 - [HQ hub](notes/hq/hq.md)
 - [Preferences](notes/hq/preferences.md)
 ```
 
-At most 2 new lines a day and 40 in total; past 40, the oldest are folded into one summary line. Each line is a pattern in the owner's own behavior: cards deleted, drafts dismissed, replies sent, cards moved. A line never quotes or paraphrases a message as a rule (security rule 13), because every later run trusts this file.
+At most 2 new lines a day and 40 in total; past 40, the oldest are folded into one summary line. Each line is a pattern in the owner's own behavior: cards deleted, drafts dismissed (the board records why), replies sent, cards moved. A line never quotes or paraphrases a message as a rule (security rule 13), because every later run trusts this file.
 
 ## Opportunities: `notes/hq/opportunities.md`
 
@@ -162,7 +168,7 @@ Bigger than a to-do: repeated work worth automating, relationships going quiet, 
 
 ## A week: `notes/hq/weeks/2026-W40.md`
 
-Frontmatter `title`, `week`, `generated`, `owner`. Sections in order: `## Done`, `## Wins`, `## Waiting on`, `## Next week`, `## Numbers` (cards added, cards closed, drafts made, drafts sent), `## Related`. One screen. The exact shape is in the FRIDAY RECAP section of `librarian-prompt.md`. Week ids are ISO weeks (Monday start), the usual weekly-note naming.
+Frontmatter `title`, `week`, `generated`, `owner`. Sections in order: `## Done`, `## Wins`, `## Waiting on`, `## Next week`, `## Numbers` (cards added, cards closed, drafts made, drafts sent and how many were found in Sent Items), `## Related`. One screen. The exact shape is in the FRIDAY RECAP section of `librarian-prompt.md`. Week ids are ISO weeks (Monday start), the usual weekly-note naming.
 
 ## Restore point: `notes/hq/backups/<version>.md`
 

@@ -11,8 +11,10 @@
     LAYOUT desk | columns | day | list
     STYLE  clearwater | morning-light | briefing | graphite
     AREAS  JSON array of the owner's areas, in the script tag with id "hq-areas"
-  Everything else comes from the artifact db (todos, drafts, prompts, meta/*), see SPEC.md.
+  Everything else comes from the artifact db (todos, drafts, prompts, meetings, metrics, meta/*), see SPEC.md.
   Open the file with #demo (or anywhere the db is unavailable) to see invented sample data.
+  Triage email, Draft this, and the Mark as sent check also need the page's mcp capability
+  (see "Connector calls" in the script); without it those buttons tell the owner what to say to Claude.
 -->
 <script>
   // Stamp layout, style and theme on the root before first paint so nothing flashes.
@@ -127,6 +129,8 @@
   --shadow-lift: 0 0 0 1px var(--border), 0 24px 56px -36px rgba(var(--shadow-rgb), .42);
   --shadow-cta: 0 6px 22px -6px color-mix(in srgb, var(--accent) 50%, transparent);
   --shadow-cta-hover: 0 12px 30px -8px color-mix(in srgb, var(--accent) 55%, transparent);
+  /* Edge of an empty checkbox: at least 3:1 against the surface in every style and theme. */
+  --control-edge: color-mix(in srgb, var(--muted) 72%, var(--surface));
 }
 /* Briefing draws rules, not shadows. */
 :root[data-style="briefing"] { --shadow-card: 0 0 0 1px var(--border); --shadow-card-hover: 0 0 0 1px color-mix(in srgb, var(--accent) 40%, var(--border)); }
@@ -174,6 +178,10 @@ p { text-wrap: pretty; }
   white-space: nowrap; text-decoration: none;
 }
 .chip > .t { overflow: hidden; text-overflow: ellipsis; }
+.chip.glyph { padding: 3px 7px; }
+/* Small inline links and chips keep their look but get a taller invisible hit area. */
+a.chip.src, .mtg .links .chip, .tile a.sub, .focus button, .nudge button, .flag-line button { position: relative; }
+a.chip.src::before, .mtg .links .chip::before, .tile a.sub::before, .focus button::before, .nudge button::before, .flag-line button::before { content: ""; position: absolute; inset: -9px 0; }
 .chip .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none; }
 .chip-accent { background: var(--surface); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line-strong); }
 .chip-accent .dot { background: var(--accent); }
@@ -213,31 +221,40 @@ p { text-wrap: pretty; }
 .tabs button[aria-selected="true"] { background: var(--accent); color: var(--on-accent); box-shadow: none; }
 .tabs .count { font: 500 11px/1 var(--font-mono); opacity: .8; font-variant-numeric: tabular-nums; }
 
-/* ============================================================ Header */
-.top { position: relative; z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 40px; }
-.top-right { display: flex; align-items: center; gap: 8px; }
-.hero { padding: 24px 0 32px; animation: fade-in 400ms var(--ease) both; }
-.greeting {
-  font: var(--display-weight) clamp(30px, 3.4vw, 44px)/1.08 var(--font-display); letter-spacing: var(--display-track);
-  margin-top: 12px;
+/* ============================================================ Header
+   One line: greeting, today's focus, counts, last update, View. The focus
+   sentence truncates; hover or keyboard focus lifts it into a raised panel
+   over the content below, so reading it in full never shifts the layout. */
+.top { position: relative; z-index: 20; display: flex; align-items: center; gap: 20px; min-height: 48px; padding-bottom: 24px; animation: fade-in 400ms var(--ease) both; }
+.headline { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 16px; }
+.greeting { flex: none; font: var(--display-weight) 22px/1.3 var(--font-display); letter-spacing: var(--display-track); white-space: nowrap; }
+.focus-wrap { position: relative; flex: 1; min-width: 0; height: 22px; }
+.focus {
+  position: absolute; left: 0; top: 0; width: 100%; border-radius: var(--r-control);
+  font-size: 15px; line-height: 22px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.focus { margin-top: 12px; max-width: 64ch; font-size: clamp(17px, 1.5vw, 20px); line-height: 1.45; color: var(--ink); }
-.hero-row { display: grid; grid-template-columns: auto 1fr; gap: 48px; align-items: end; margin-top: 32px; }
-.stats { display: flex; gap: 40px; }
+.focus:focus-visible { outline-offset: 4px; }
+.focus.is-long:hover, .focus.is-long:focus, .focus.is-long:focus-within {
+  z-index: 25; white-space: normal; overflow: visible; width: calc(100% + 24px); margin: -10px -12px; padding: 10px 12px;
+  background: var(--raised); color: var(--ink); box-shadow: var(--shadow-lift); outline: none;
+}
+.focus button { display: inline; border: 0; padding: 0; background: none; font: inherit; color: var(--ink); text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px; }
+.focus button:hover { text-decoration-color: var(--accent); }
+.hmeta { flex: none; display: flex; align-items: center; gap: 10px; font: 500 12px/1 var(--font-mono); letter-spacing: .02em; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.hmeta b { font-weight: 500; color: var(--ink); }
+.hmeta b.warn { color: var(--warn); }
+.hmeta .sep { width: 3px; height: 3px; border-radius: 50%; background: var(--line-strong); }
+.top-right { flex: none; display: flex; align-items: center; gap: 8px; }
+.sweeping { display: inline-flex; align-items: center; gap: 8px; }
 .stat .n { display: block; font: 400 44px/1 var(--font-display); letter-spacing: -0.026em; font-variant-numeric: tabular-nums; }
 :root[data-style="briefing"] .stat .n { font-family: var(--font-ui); font-weight: 400; }
 .stat .eyebrow { display: block; margin-top: 8px; }
-.fresh { justify-self: end; text-align: right; display: grid; gap: 8px; justify-items: end; }
-.fresh p { font-size: 13px; color: var(--muted); }
-.sweeping { display: inline-flex; align-items: center; gap: 8px; }
-.sources { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; align-items: center; }
-.sources .eyebrow { margin-right: 4px; }
 
 /* ============================================================ Toolbar */
-.bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding-bottom: 24px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+.bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding-bottom: 24px; border-bottom: 1px solid var(--border); margin-bottom: 32px; }
 .bar-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
-.nudge { display: flex; align-items: baseline; gap: 10px; margin: -8px 0 24px; font-size: 14px; color: var(--muted); }
+.nudge { display: flex; align-items: baseline; gap: 10px; margin: 0 0 32px; font-size: 14px; color: var(--muted); }
 .nudge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--warn-dot); flex: none; transform: translateY(-2px); }
 .nudge button { border: 0; background: none; padding: 0; color: var(--ink); text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px; }
 .nudge button:hover { text-decoration-color: var(--accent); }
@@ -268,6 +285,8 @@ a.src:hover { background: var(--hover); color: var(--ink); box-shadow: inset 0 0
 /* Medium confidence: the card reads as tentative, not as a different kind of thing. */
 .card[data-conf="medium"] { box-shadow: 0 1px 2px rgba(var(--shadow-rgb), .04); outline: 1px dashed var(--line-strong); outline-offset: -1px; }
 .card[data-conf="medium"]:hover { outline-color: color-mix(in srgb, var(--accent) 45%, var(--line-strong)); }
+/* The dashed outline above would otherwise win over the global focus ring. */
+.card[data-conf="medium"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .card[data-conf="medium"] .card-title { font-weight: 500; }
 /* Suspicious: calm amber ring and a Review chip. Never red, never an alarm. */
 .card[data-sus] { box-shadow: 0 0 0 1px color-mix(in srgb, var(--warn-dot) 50%, var(--border)), 0 1px 2px rgba(var(--shadow-rgb), .05); }
@@ -278,7 +297,7 @@ a.src:hover { background: var(--hover); color: var(--ink); box-shadow: inset 0 0
 /* The check: fills accent, then a 1.8px tick draws itself on the io curve. */
 .check {
   position: relative; width: 22px; height: 22px; margin-top: 0; padding: 0; border: 0; border-radius: 6px;
-  background: var(--surface); box-shadow: inset 0 0 0 1.5px var(--line-strong); color: var(--on-accent);
+  background: var(--surface); box-shadow: inset 0 0 0 1.5px var(--control-edge); color: var(--on-accent);
   transition: background-color 200ms var(--ease), box-shadow 200ms var(--ease), transform 100ms var(--ease);
 }
 :root[data-style="morning-light"] .check { border-radius: 50%; }
@@ -316,12 +335,12 @@ a.src:hover { background: var(--hover); color: var(--ink); box-shadow: inset 0 0
    render and newly arrived cards animate; a re-render never replays it. */
 @keyframes rise { from { opacity: 0; transform: translateY(5px) scale(.97); } to { opacity: 1; transform: none; } }
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fade-out { to { opacity: 0; } }
 .is-new { animation: rise 460ms var(--ease) both; animation-delay: calc(var(--i, 0) * 70ms); }
 
 /* ============================================================ Layout: desk (areas) */
 .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 0 2px 12px; }
-.section-head h2 { font: 600 15px/1.3 var(--font-display); letter-spacing: -0.01em; }
-:root[data-style="briefing"] .section-head h2 { font-size: 17px; }
+.section-head h2 { font: 600 17px/1.3 var(--font-display); letter-spacing: -0.01em; }
 .desk { display: grid; grid-template-columns: repeat(auto-fill, minmax(288px, 1fr)); gap: 32px 24px; align-items: start; }
 .desk > section { min-width: 0; }
 .drop-on { border-radius: var(--r-card); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent); background: color-mix(in srgb, var(--accent) 4%, transparent); }
@@ -359,7 +378,7 @@ a.src:hover { background: var(--hover); color: var(--ink); box-shadow: inset 0 0
 .orb.live { color: var(--accent); }
 
 /* Collapsed extras: done this week, recently deleted. */
-.extras { margin-top: 40px; display: grid; gap: 8px; max-width: 760px; }
+.extras { margin-top: 32px; display: grid; gap: 8px; max-width: 760px; }
 details.fold { border-top: 1px solid var(--border); padding-top: 4px; }
 details.fold > summary { list-style: none; display: flex; align-items: center; gap: 8px; min-height: 40px; cursor: pointer; border-radius: var(--r-control); }
 details.fold > summary::-webkit-details-marker { display: none; }
@@ -376,8 +395,39 @@ details.fold[open] > summary .icon { transform: none; }
 .help { font-size: 14px; color: var(--muted); margin-bottom: 8px; }
 .voice-nudge { display: flex; gap: 10px; align-items: center; padding: 12px 16px; margin: 16px 0 24px; border-radius: var(--r-card); background: var(--surface); box-shadow: var(--shadow-card); font-size: 14px; }
 .voice-nudge .icon { color: var(--accent); }
-.letters { display: grid; gap: 24px; }
-.letter { background: var(--surface); border-radius: var(--r-card); box-shadow: var(--shadow-card); overflow: hidden; }
+/* Drafts toolbar: one row of quiet controls. Status filter leads; the rest are view choices. */
+.dtools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 20px; }
+.dtools .grow { flex: 1 1 0; }
+.dtools .seg button { min-height: 40px; padding: 0 12px; font-size: 13px; }
+.dtools .count { font: 500 11px/1 var(--font-mono); opacity: .7; font-variant-numeric: tabular-nums; }
+.dtools select.input { width: auto; min-height: 40px; padding: 0 30px 0 12px; font-size: 13px; background-position: calc(100% - 17px) 17px, calc(100% - 12px) 17px; }
+.bulk { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 10px 10px 16px; margin-bottom: 16px; border-radius: var(--r-card); background: var(--warn-tint); font-size: 14px; }
+.bulk .btn { min-height: 40px; }
+/* Letters in a row stretch to the tallest one with actions pinned to the bottom, so the
+   buttons line up across columns. */
+.letters { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: stretch; }
+.letters.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.letters.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.letters .group-head { grid-column: 1 / -1; padding-top: 8px; }
+.letters .group-head:first-child { padding-top: 0; }
+.letter { display: flex; flex-direction: column; background: var(--surface); border-radius: var(--r-card); box-shadow: var(--shadow-card); overflow: hidden; min-width: 0; }
+.letter > .letter-actions, .letter > .reasons { margin-top: auto; }
+.lrow .from { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; min-width: 0; }
+.age { font: 500 11px/1.3 var(--font-mono); letter-spacing: .04em; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.age.is-old { color: var(--warn); }
+.lrow .due { font: 500 11px/1 var(--font-mono); letter-spacing: .04em; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.flags { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 0 20px 14px; }
+.flag-line { display: flex; gap: 8px; align-items: baseline; padding: 0 20px 14px; font-size: 13px; color: var(--ink); }
+.flag-line .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--warn-dot); flex: none; transform: translateY(-1px); }
+.flag-line button { border: 0; padding: 0; background: none; font: inherit; color: var(--ink); text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px; }
+.snip { padding: 12px 20px 14px; font-size: 14px; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.letter.is-compact .lrow { min-height: 34px; padding: 7px 0; }
+.letter.is-compact .letter-actions { padding: 12px 20px; }
+.reasons { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--border); background: var(--page); animation: fade-in 160ms var(--ease) both; }
+.reasons .eyebrow { margin-right: 4px; }
+.reasons .btn { min-height: 40px; padding: 0 12px; font-size: 13px; }
+.btn.is-busy { color: var(--muted); cursor: progress; }
+.btn .orb { color: var(--accent); }
 .letter.is-new { animation-name: rise; }
 .letter-head { display: grid; gap: 0; padding: 4px 20px; border-bottom: 1px solid var(--border); }
 .lrow { display: grid; grid-template-columns: 72px minmax(0, 1fr) auto; align-items: baseline; gap: 12px; min-height: 40px; padding: 10px 0; font-size: 14px; }
@@ -398,6 +448,36 @@ details.fold[open] > summary .icon { transform: none; }
 .letter.is-stale .letter-body { color: var(--muted); }
 .letter.is-leaving, .card.is-leaving { animation: none; overflow: hidden; transition: height 200ms var(--ease-fade), opacity 160ms var(--ease-fade), margin 200ms var(--ease-fade), padding 200ms var(--ease-fade); }
 
+/* ============================================================ Optional sections
+   Turned on by meta/config.sections. Each hides itself when its collection is empty,
+   so a board without the new fields renders exactly as before. */
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(208px, 1fr)); gap: 12px; margin-bottom: 32px; }
+.tile { display: grid; gap: 6px; align-content: start; padding: 14px 16px; background: var(--surface); border-radius: var(--r-card); box-shadow: var(--shadow-card); min-width: 0; }
+.tile .v { font: 400 28px/1.1 var(--font-display); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+:root[data-style="briefing"] .tile .v { font-family: var(--font-ui); }
+.tile .lbl { font-size: 13px; font-weight: 500; }
+.tile .sub { font-size: 13px; line-height: 1.4; color: var(--muted); }
+.tile a.sub { text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
+.tile a.sub:hover { color: var(--ink); }
+.upnext { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 16px 32px; margin-bottom: 32px; }
+.upnext > section { min-width: 0; }
+.mtg, .prow { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 2px 12px; padding: 12px 2px; border-top: 1px solid var(--border); }
+.mtg .when, .prow .rk { font: 500 12px/1.5 var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+.mtg h3 { font-size: 15px; font-weight: 600; line-height: 1.35; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.mtg ul { margin: 6px 0 0; padding-left: 16px; font-size: 13px; color: var(--muted); display: grid; gap: 2px; }
+.mtg .links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.mtg .links button.chip { border: 0; cursor: pointer; text-transform: none; letter-spacing: 0; font: 500 12px/1.3 var(--font-ui); max-width: 100%; }
+.mtg .links button.chip .t { overflow: hidden; text-overflow: ellipsis; }
+.mtg .links button.chip:hover { color: var(--ink); background: var(--hover); }
+.mtg .clash { grid-column: 2; display: flex; gap: 8px; align-items: baseline; margin-top: 6px; font-size: 13px; color: var(--warn); }
+.mtg .clash .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--warn-dot); flex: none; transform: translateY(-1px); }
+.daylabel { padding: 12px 2px 4px; border-top: 1px solid var(--border); }
+.prow { grid-template-columns: 28px minmax(0, 1fr); width: 100%; border-left: 0; border-right: 0; border-bottom: 0; background: none; text-align: left; border-radius: 0; transition: background-color 160ms var(--ease); }
+.prow:hover { background: var(--hover); }
+.prow .rk { font-size: 20px; line-height: 1.1; font-family: var(--font-display); }
+.prow .pt { display: block; font-size: 15px; font-weight: 600; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prow .s { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; font-size: 13px; color: var(--muted); }
+
 /* ============================================================ Prompts */
 .prompts { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
 .prompt { display: grid; gap: 12px; align-content: start; padding: 20px; background: var(--surface); border-radius: var(--r-card); box-shadow: var(--shadow-card); }
@@ -411,7 +491,7 @@ details.fold[open] > summary .icon { transform: none; }
 .week-stats { display: flex; flex-wrap: wrap; gap: 24px 48px; margin: 32px 0; }
 .weekline { margin: 8px 0 32px; max-width: 520px; }
 .weekline svg { display: block; width: 100%; height: 40px; overflow: visible; }
-.weekline .lbl { font: 500 10px var(--font-mono); letter-spacing: .08em; fill: var(--muted); }
+.weekline .lbl { font: 500 11px var(--font-mono); letter-spacing: .08em; fill: var(--muted); }
 .weekline .today-dot { transform-box: fill-box; transform-origin: center; animation: breathe 5.2s var(--ease-breathe) infinite alternate; }
 @keyframes breathe { from { opacity: .4; transform: scale(.74); } to { opacity: 1; transform: scale(1.12); } }
 .summary { font-size: 17px; line-height: 1.6; max-width: 64ch; }
@@ -439,7 +519,7 @@ details.fold[open] > summary .icon { transform: none; }
 .swatch[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--accent); }
 .swatch .bars { display: flex; gap: 3px; }
 .swatch .bars i { height: 10px; flex: 1; border-radius: 3px; }
-.pop .hint { font-size: 12.5px; color: var(--muted); }
+.pop .hint { font-size: 12px; color: var(--muted); }
 
 /* ============================================================ Dialogs */
 dialog {
@@ -496,22 +576,53 @@ select.input { appearance: none; padding-right: 32px; background-image: linear-g
 @keyframes toast-out { to { opacity: 0; transform: translate(-50%, 4px); } }
 .toast .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .toast .btn { min-height: 32px; padding: 0 12px; border-radius: 999px; }
+@media (max-width: 640px) {
+  .toast.has-two { left: 16px; right: 16px; flex-wrap: wrap; justify-content: flex-end; border-radius: 16px; padding: 10px; transform: none; animation-name: fade-in; }
+  .toast.has-two .t { flex: 1 0 100%; white-space: normal; padding: 0 6px 4px; }
+  .toast.has-two.is-out { animation: fade-out 160ms var(--ease-fade) both; }
+}
 
 /* ============================================================ Responsive */
 @media (max-width: 1100px) {
   .cols { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 32px 0; }
   .cols > section { border-left: 0; padding: 0 12px 0 0; min-height: 0; }
 }
+/* Drafts collapse to one per row under 900px whatever the saved choice: two letters
+   side by side need about 420px each to keep the To and Subject rows readable. */
+@media (max-width: 900px) {
+  .letters.cols-2, .letters.cols-3 { grid-template-columns: minmax(0, 1fr); }
+  .dtools .cols-pick { display: none; }
+}
+/* Below 1180px the focus line would shrink to a few words, so it moves to its own row under
+   the greeting, counts, and View. Below 860px the counts get a row of their own too. */
+@media (max-width: 1180px) {
+  .top { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "greet meta right" "focus focus focus"; gap: 8px 16px; padding-bottom: 24px; }
+  .headline { display: contents; }
+  .greeting { grid-area: greet; align-self: center; }
+  .focus-wrap { grid-area: focus; }
+  .hmeta { grid-area: meta; justify-self: end; }
+  .top-right { grid-area: right; }
+}
 @media (max-width: 860px) {
-  .hero-row { grid-template-columns: 1fr; gap: 24px; }
-  .fresh { justify-self: start; text-align: left; justify-items: start; }
-  .sources { justify-content: flex-start; }
+  .top { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "greet right" "focus focus" "meta meta"; }
+  .hmeta { justify-self: start; flex-wrap: wrap; row-gap: 6px; }
 }
 @media (max-width: 640px) {
   .app { padding: 16px 16px 48px; }
-  .hero { padding: 16px 0 24px; }
-  .stats { gap: 24px; }
   .stat .n { font-size: 36px; }
+  .dtools .seg.status { width: 100%; }
+  .dtools .seg.status button { flex: 1 1 auto; justify-content: center; padding: 0 8px; white-space: nowrap; }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 24px; }
+  .tile .v { font-size: 24px; }
+  #sampleChip { display: none; }
+  .btn, .seg button, .dtools .seg button, .dtools select.input { min-height: 44px; }
+  .check::before { inset: -11px; }
+  .upnext, .tiles { margin-bottom: 24px; }
+  .bar { margin-bottom: 24px; }
+  .nudge { margin-bottom: 24px; }
+  .mtg { grid-template-columns: 60px minmax(0, 1fr); }
+  .dtools .grow { display: none; }
+  .bulk { flex-wrap: wrap; }
   .bar { gap: 12px; padding-bottom: 16px; margin-bottom: 16px; }
   .tabs { width: 100%; }
   .tabs button { flex: 1; justify-content: center; padding: 0 6px; }
@@ -539,7 +650,11 @@ select.input { appearance: none; padding-right: 32px; background-image: linear-g
 <body>
 <div class="app" id="app">
   <header class="top">
-    <span class="eyebrow" id="dateline"></span>
+    <div class="headline">
+      <h1 class="greeting" id="greeting"></h1>
+      <div class="focus-wrap"><p class="focus" id="focus"></p></div>
+    </div>
+    <div class="hmeta" id="hmeta"></div>
     <div class="top-right">
       <span class="chip" id="sampleChip" hidden><span class="t">Sample data</span></span>
       <div class="pop-wrap">
@@ -551,15 +666,6 @@ select.input { appearance: none; padding-right: 32px; background-image: linear-g
       </div>
     </div>
   </header>
-
-  <section class="hero" aria-labelledby="greeting">
-    <h1 class="greeting" id="greeting"></h1>
-    <p class="focus" id="focus"></p>
-    <div class="hero-row">
-      <div class="stats" id="stats"></div>
-      <div class="fresh" id="fresh"></div>
-    </div>
-  </section>
 
   <nav class="bar" aria-label="Board">
     <div class="seg tabs" role="tablist" id="tabs"></div>
@@ -1079,9 +1185,9 @@ select.input { appearance: none; padding-right: 32px; background-image: linear-g
      replace it; in demo mode, write() edits it directly. Rendering only
      ever reads from here.
      ------------------------------------------------------------------ */
-  var state = { todos: {}, drafts: {}, prompts: {}, meta: {}, live: false, demo: false, loaded: false };
+  var state = { todos: {}, drafts: {}, prompts: {}, meetings: {}, metrics: {}, meta: {}, live: false, demo: false, loaded: false };
   var db = null;
-  var ui = { tab: "today", seen: null, orbs: [], openId: null };
+  var ui = { tab: "today", seen: null, orbs: [], openId: null, busy: {}, reasonFor: null, drafting: {} };
 
   /* ------------------------------------------------------------------ Dates */
   var MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -1137,7 +1243,7 @@ select.input { appearance: none; padding-right: 32px; background-image: linear-g
   function genId(p) { return p + "-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
   // Card and draft links come from model-written fields, so a planted "webLink" could point anywhere.
   // Only https links to the hosts the connectors actually return, with no user:pass@ part, are shown.
-  var LINK_HOSTS = ["outlook.office.com", "outlook.office365.com", "outlook.live.com", "teams.microsoft.com", "teams.cloud.microsoft", "corridor.corridorcontext.com"];
+  var LINK_HOSTS = ["outlook.office.com", "outlook.office365.com", "outlook.live.com", "teams.microsoft.com", "teams.cloud.microsoft", "outlook.cloud.microsoft", "corridor.corridorcontext.com"];
   function safeLink(u) {
     try {
       var x = new URL(u || "");
@@ -1208,13 +1314,25 @@ select.input { appearance: none; padding-right: 32px; background-image: linear-g
     else if (du !== null && du > 1) bits.push(shortDate(c.due_date).toUpperCase());
     return bits.join(" · ");
   }
-  function sourceChip(c, extraCls) {
+  /* "Asked on": the date of the original ask or promise (ask_date, set by the librarian),
+     not the day the card or draft was written. Older boards have no ask_date, so fall back
+     to added_date, then a draft's created_at. Amber from 5 days: the ask is getting old. */
+  var OLD_ASK_DAYS = 5;
+  function askIso(x) { return x.ask_date || x.added_date || (x.created_at ? isoDay(new Date(x.created_at)) : ""); }
+  function askedHtml(x, long, open) {
+    var iso = askIso(x); if (!parseDay(iso)) return "";
+    var n = Math.max(0, daysSince(iso));
+    var t = "Asked " + (n === 0 ? "today" : shortDate(iso) + " · " + n + (long ? (n === 1 ? " day" : " days") : "d"));
+    return '<span class="age' + (open && n >= OLD_ASK_DAYS ? " is-old" : "") + '">' + esc(t) + "</span>";
+  }
+  // iconOnly: card faces show just the source glyph (the tooltip and screen-reader text keep
+  // the name), which leaves room for "Asked" and the status chip on one row.
+  function sourceChip(c, extraCls, iconOnly) {
     var s = SOURCES[c.source_type] || SOURCES.manual;
-    var when = shortDate(c.added_date);
-    var tip = (c.source_label || s.name) + (when ? " · " + when : "");
-    var link = safeLink(c.source_link);
-    var inner = icon(c.source_type in GLYPH ? c.source_type : "manual", "icon-sm") + '<span class="t">' + esc(s.chip + (when ? " · " + when : "")) + "</span>";
-    var cls = "chip src" + (extraCls ? " " + extraCls : "");
+    var tip = c.source_label || s.name;
+    var link = c.source_type === "outlook" ? outlookUrl({ thread_link: c.source_link }, "thread") : safeLink(c.source_link);
+    var inner = icon(c.source_type in GLYPH ? c.source_type : "manual", "icon-sm") + '<span class="' + (iconOnly ? "sr" : "t") + '">' + esc(s.chip) + "</span>";
+    var cls = "chip src" + (iconOnly ? " glyph" : "") + (extraCls ? " " + extraCls : "");
     if (link) return '<a class="' + cls + '" href="' + esc(link) + '" target="_blank" rel="noopener" data-tip="' + esc(tip) + '" aria-label="' + esc(s.open + ": " + tip) + '">' + inner + "</a>";
     return '<span class="' + cls + '" data-tip="' + esc(tip) + '">' + inner + "</span>";
   }
@@ -1237,7 +1355,9 @@ select.input { appearance: none; padding-right: 32px; background-image: linear-g
       '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></button>' +
       '<div class="card-main"><h3 class="card-title"><span>' + esc(c.title) + "</span></h3>" +
       (ctxLine(c) ? '<p class="card-ctx">' + esc(ctxLine(c)) + "</p>" : "") +
-      '<div class="card-foot">' + sourceChip(c) + statusChip(c) + (due ? '<span class="due">' + esc(due) + "</span>" : "") + "</div></div></article>";
+      '<div class="card-foot">' + sourceChip(c, "", true) + askedHtml(c, false, isOpen(c)) + statusChip(c) +
+      (ui.drafting[c.id] ? '<span class="chip chip-accent"><span class="dot"></span><span class="t">Drafting</span></span>' : "") +
+      (due ? '<span class="due">' + esc(due) + "</span>" : "") + "</div></div></article>";
   }
   function emptyLine(text) {
     return '<div class="empty"><canvas class="orb" data-orb="working" data-paused="1" aria-hidden="true"></canvas><span class="eyebrow">' + esc(text) + "</span></div>";
@@ -1267,55 +1387,155 @@ select.input { appearance: none; padding-right: 32px; background-image: linear-g
     // A sweep that started over an hour ago and never finished is not "running"; it failed.
     return started > last && Date.now() - started < 3600000;
   }
+  /* The focus line updates itself as cards close. meta/brief.items names the cards the
+     librarian's sentence was about; the page rebuilds the sentence from the ones still open.
+     Older briefs have no items, so the librarian's focus text is used as written. */
+  var NUM_WORD = ["No things", "One thing", "Two things", "Three things", "Four things", "Five things"];
+  function cardLink(c, label) { return '<button data-action="open" data-id="' + esc(c.id) + '">' + esc(label || c.title) + "</button>"; }
+  function joinAnd(parts) { return parts.length < 2 ? parts.join("") : parts.slice(0, -1).join(", ") + (parts.length > 2 ? "," : "") + " and " + parts[parts.length - 1]; }
+  function focusHtml(k) {
+    if (state.unavailable) return esc("Your board can't reach its data from here.");
+    var brief = state.meta.brief || {};
+    var items = (Array.isArray(brief.items) ? brief.items : []).filter(function (it) { return it && it.card_id; });
+    if (items.length) {
+      var open = items.filter(function (it) { var c = state.todos[it.card_id]; return c && isOpen(c); });
+      if (open.length) {
+        return esc((NUM_WORD[open.length] || open.length + " things") + (open.length === 1 ? " needs" : " need") + " you today: ") +
+          joinAnd(open.map(function (it) { return cardLink(state.todos[it.card_id], it.label); })) + ".";
+      }
+      var ids = items.map(function (it) { return it.card_id; });
+      var next = openCards().filter(function (c) { return isActive(c) && !c.suspicious && ids.indexOf(c.id) < 0; }).slice(0, 3);
+      return esc("You're through today's top items.") + (next.length ? " Next: " + joinAnd(next.map(function (c) { return cardLink(c); })) + "." : "");
+    }
+    if (brief.focus) return esc(brief.focus);
+    return state.loaded && !k.owed ? esc("Nothing needs you right now. The next sweep runs at " + nextSweep() + ".") : "";
+  }
   function renderHeader() {
     var now = new Date();
-    document.getElementById("dateline").textContent = DAY[now.getDay()] + " · " + MON[now.getMonth()] + " " + now.getDate();
     var name = firstName();
     document.getElementById("greeting").textContent = greetingWord() + (name ? ", " + name : "") + ".";
-    var brief = state.meta.brief || {};
     var k = counts();
-    var focus = state.unavailable ? "Your board can't reach its data from here." : brief.focus || (state.loaded && !k.owed ? "Nothing needs you right now. The next sweep runs at " + nextSweep() + "." : "");
-    document.getElementById("focus").textContent = focus;
+    var focus = document.getElementById("focus");
+    focus.innerHTML = focusHtml(k);
+    // Only a sentence that is actually cut off gets the hover panel and a tab stop.
+    var long = focus.scrollWidth > focus.clientWidth + 1;
+    focus.classList.toggle("is-long", long);
+    if (long && !focus.querySelector("button")) focus.setAttribute("tabindex", "0"); else focus.removeAttribute("tabindex");
 
-    document.getElementById("stats").innerHTML = [
-      [k.owed, "You owe"], [k.waiting, "Waiting on"], [k.due, "Due today"]
-    ].map(function (s) { return '<div class="stat"><span class="n">' + s[0] + '</span><span class="eyebrow">' + s[1] + "</span></div>"; }).join("");
-
-    var sweep = state.meta.sweep || {}, brain = state.meta.brain || {};
-    var lines = [];
-    if (sweepRunning()) {
-      var names = (config().sources || []).map(function (id) { return (SOURCES[id] || {}).name; }).filter(Boolean).slice(0, 3);
-      lines.push('<span class="sweeping"><canvas class="orb live" data-orb="working" aria-hidden="true"></canvas><span class="eyebrow">Sweeping' + (names.length ? " · " + esc(names.join(" · ")) : "") + "</span></span>");
-    }
-    if (sweep.last_sweep_at) {
-      var variant = sweep.last_variant === "friday" ? "Friday recap" : (sweep.last_variant || "morning") + " librarian";
-      lines.push("<p>Updated " + esc(whenLabel(sweep.last_sweep_at)) + " by your " + esc(variant) + "</p>");
-    } else if (state.loaded) {
-      lines.push("<p>Your first sweep runs at " + esc(nextSweep()) + "</p>");
-    }
-    if (brain.updated) lines.push("<p>Notes current as of " + esc(shortDate(brain.updated)) + "</p>");
-    var srcs = (config().sources || []).filter(function (id) { return SOURCES[id]; });
-    if (srcs.length) {
-      lines.push('<div class="sources"><span class="eyebrow">Reading from</span>' + srcs.map(function (id) {
-        return '<span class="chip">' + icon(id, "icon-sm") + '<span class="t">' + esc(SOURCES[id].name) + "</span></span>";
-      }).join("") + "</div>");
-    }
-    document.getElementById("fresh").innerHTML = lines.join("");
+    var sweep = state.meta.sweep || {};
+    var bits = [
+      "<span><b>" + k.owed + "</b> owed</span>",
+      "<span><b>" + k.waiting + "</b> waiting</span>",
+      "<span><b" + (k.due ? ' class="warn"' : "") + ">" + k.due + "</b> due today</span>"
+    ];
+    var fresh = sweepRunning() ? '<span class="sweeping"><canvas class="orb live" data-orb="working" aria-hidden="true"></canvas>Updating</span>'
+      : sweep.last_sweep_at ? "<span>Updated " + esc(whenLabel(sweep.last_sweep_at)) + "</span>"
+      : state.loaded ? "<span>First update " + esc(nextSweep()) + "</span>" : "";
+    document.getElementById("hmeta").innerHTML = bits.join('<span class="sep" aria-hidden="true"></span>') +
+      (fresh ? '<span class="sep" aria-hidden="true"></span>' + fresh : "");
+    document.getElementById("hmeta").setAttribute("title", DAY[now.getDay()] + ", " + MON[now.getMonth()] + " " + now.getDate());
   }
 
   /* ------------------------------------------------------------------ Tabs and toolbar */
   function liveDrafts() { return values(state.drafts).filter(function (d) { return d.status !== "dismissed"; }); }
   function renderTabs() {
-    var pending = liveDrafts().filter(function (d) { return d.status !== "sent"; }).length;
+    // The badge counts only drafts ready to send, so the number means "emails you could send now".
+    var pending = liveDrafts().filter(function (d) { return draftBucket(d) === "send"; }).length;
     var tabs = [["today", "Today", ""], ["drafts", "Drafts", pending || ""], ["prompts", "Prompts", ""], ["week", "Week", ""]];
     document.getElementById("tabs").innerHTML = tabs.map(function (t) {
       return '<button role="tab" data-action="tab" data-tab="' + t[0] + '" aria-selected="' + (ui.tab === t[0]) + '">' + t[1] +
         (t[2] !== "" ? '<span class="count">' + t[2] + "</span>" : "") + "</button>";
     }).join("");
-    document.getElementById("barActions").innerHTML = ui.tab === "today"
+    var triage = ui.tab === "today" || ui.tab === "drafts" ? triageButton() : "";
+    document.getElementById("barActions").innerHTML = triage + (ui.tab === "today"
       ? '<button class="btn" data-action="add" data-mode="call">' + icon("phone") + "Log a call</button>" +
         '<button class="btn btn-primary" data-action="add" data-mode="task">' + icon("plus") + "Add</button>"
-      : "";
+      : "");
+  }
+
+  /* ------------------------------------------------------------------
+     Connector calls (the page's mcp capability). Only two tools are ever
+     called: Claude Code Remote fire_trigger (Triage email, Draft this) and
+     Microsoft 365 outlook_email_search (the Sent Items check). Both must be
+     in the publish-time capabilities, or calls reject not_in_manifest.
+     claude.use("mcp") resolves null in previews and on boards published
+     without the capability, so every caller has a "say this to Claude" path.
+     ------------------------------------------------------------------ */
+  var TRIGGERS = "Claude Code Remote", M365 = "Microsoft 365";
+  var mcpPromise = null;
+  function mcp() {
+    if (!mcpPromise) {
+      mcpPromise = (window.claude && typeof window.claude.use === "function" && !state.demo)
+        ? Promise.resolve(window.claude.use("mcp")).catch(function () { return null; }) : Promise.resolve(null);
+    }
+    return mcpPromise;
+  }
+  // One plain sentence per error code: each names the fix, never "something went wrong".
+  function mcpProblem(err, server) {
+    var code = (err && err.code) || "upstream_error";
+    if (code === "needs_reauth") return "Reconnect " + server + " in Settings, Connectors";
+    if (code === "server_not_connected" || code === "server_not_found") return "Add " + server + " in Settings, Connectors";
+    if (code === "selection_required") return "Choose which " + server + " to use when Claude asks";
+    if (code === "not_in_manifest") return "This board isn't allowed to use " + server + " yet";
+    if (code === "blocked_by_policy" || code === "approval_required") return "Your organization blocks this here";
+    if (code === "not_granted" || code === "capability_disabled" || code === "capability_removed") return "Not available in this view";
+    if (code === "tool_error") return (server === M365 ? "Outlook" : "The task") + " said no: " + String(err.message || "").slice(0, 80);
+    return "";
+  }
+  // fire_trigger is a write. A timeout or upstream error does not prove it did not start,
+  // so those outcomes keep the button in its running state instead of inviting a second run.
+  var AMBIGUOUS = ["server_unavailable", "upstream_error", "cancelled", "rate_limited"];
+  function fireTrigger(triggerId, text) {
+    return mcp().then(function (api) {
+      if (!api) throw { code: "not_granted" };
+      return api.callTool(TRIGGERS, "fire_trigger", { trigger_id: triggerId, text: text }, { cache: false });
+    }).then(function (res) {
+      var p = res && res.payload;
+      if (p && typeof p === "object" && p.ok === false) throw { code: "tool_error", message: p.error || p.message || "it did not start" };
+      return res;
+    });
+  }
+
+  /* ------------------------------------------------------------------
+     Triage email: runs the owner's midday librarian now (meta/config.triage_trigger_id).
+     It stays disabled from the click until meta/sweep shows a newer last_sweep_at, so it
+     cannot double-fire; a 20 minute ceiling frees it if a run dies without finishing.
+     The click time is kept in localStorage so a reload does not re-arm it.
+     ------------------------------------------------------------------ */
+  var TRIAGE_KEY = "hq.triage", TRIAGE_MAX_MS = 20 * 60000;
+  function triageState() { try { return JSON.parse(localStorage.getItem(TRIAGE_KEY) || "null"); } catch (e) { return null; } }
+  function setTriageState(v) { try { if (v) localStorage.setItem(TRIAGE_KEY, JSON.stringify(v)); else localStorage.removeItem(TRIAGE_KEY); } catch (e) {} ui.triage = v; }
+  function triageRunning() {
+    var t = ui.triage !== undefined ? ui.triage : triageState();
+    if (sweepRunning()) return true;
+    if (!t || !t.at) return false;
+    if (state.meta.sweep === undefined) return true; // meta/sweep not loaded yet: keep the lock
+    var last = (state.meta.sweep || {}).last_sweep_at || "";
+    if (last !== (t.sweep || "") || Date.now() - t.at > TRIAGE_MAX_MS) { setTriageState(null); return false; }
+    return true;
+  }
+  function triageButton() {
+    if (triageRunning()) return '<span class="btn is-busy" aria-disabled="true" role="status"><canvas class="orb live" data-orb="working" aria-hidden="true"></canvas>Triage running</span>';
+    return '<button class="btn" data-action="triage">' + icon("outlook") + "Triage email</button>";
+  }
+  function sayInstead(what, phrase) {
+    toast(what + ". Say “" + phrase + "” to Claude", "Copy", function () { copyText(phrase, "Copied. Paste it into Claude"); }, 9000);
+  }
+  function runTriage() {
+    if (triageRunning()) return;
+    var id = config().triage_trigger_id;
+    if (state.demo) { sayInstead("Sample board", "triage my email"); return; }
+    if (!id) { sayInstead("Triage isn't set up on this board", "triage my email"); return; }
+    setTriageState({ at: Date.now(), sweep: (state.meta.sweep || {}).last_sweep_at || "" });
+    renderTabs(); mountOrbs();
+    fireTrigger(id, "Triage now: run as the midday librarian, then draft replies for open email cards that have no draft yet.").then(function () {
+      toast("Triage started. New cards land in a few minutes");
+    }, function (err) {
+      if (AMBIGUOUS.indexOf(err && err.code) >= 0) { toast("Couldn't confirm triage started. Check back before trying again", null, null, 9000); return; }
+      setTriageState(null); renderTabs();
+      var why = mcpProblem(err, TRIGGERS);
+      sayInstead(why || "Triage didn't start", "triage my email");
+    });
   }
 
   /* ------------------------------------------------------------------ Today: four layouts */
@@ -1420,6 +1640,75 @@ select.input { appearance: none; padding-right: 32px; background-image: linear-g
     return html ? '<div class="extras">' + html + "</div>" : "";
   }
 
+  /* ------------------------------------------------------------------
+     Optional sections, listed in meta/config.sections ("meetings",
+     "priority_email", "metrics"; "todos" and "drafts" are always on).
+     No sections key, or an empty collection, renders nothing extra.
+     ------------------------------------------------------------------ */
+  function sectionOn(name) { var s = config().sections; return Array.isArray(s) && s.indexOf(name) >= 0; }
+
+  // Safety rule 5: no money on the board. Librarians write "[see report]" for monetary
+  // numbers; this is the page's own backstop if a currency value slips through anyway.
+  var MONEY = /[$€£¥₹]|\b(usd|eur|gbp|cad|aud|dollars?|euros?|pounds)\b/i;
+  function metricValue(v) { var s = String(v == null ? "" : v).trim(); return !s || MONEY.test(s) ? "[see report]" : s; }
+  function metricsHtml() {
+    if (!sectionOn("metrics")) return "";
+    var list = values(state.metrics).filter(function (m) { return m && m.label; });
+    if (!list.length) return "";
+    return '<div class="tiles" role="list" aria-label="Your numbers">' + list.map(function (m) {
+      var link = safeLink(m.source_link), when = [m.period, m.as_of ? "as of " + shortDate(m.as_of) : ""].filter(Boolean).join(" · ");
+      return '<div class="tile" role="listitem"><span class="lbl">' + esc(m.label) + '</span><span class="v">' + esc(metricValue(m.value)) + "</span>" +
+        (when ? '<span class="sub">' + esc(when) + "</span>" : "") +
+        (link ? '<a class="sub" href="' + esc(link) + '" target="_blank" rel="noopener">' + esc(m.source_label || "Open the report") + icon("external", "icon-sm") + "</a>"
+          : m.source_label ? '<span class="sub">' + esc(m.source_label) + "</span>" : "") + "</div>";
+    }).join("") + "</div>";
+  }
+
+  function meetingsHtml() {
+    if (!sectionOn("meetings")) return "";
+    var now = Date.now(), days = [todayIso(), addDays(1)];
+    var list = values(state.meetings).filter(function (m) {
+      if (!m || !m.start || isNaN(Date.parse(m.start))) return false;
+      return days.indexOf(isoDay(new Date(m.start))) >= 0 && Date.parse(m.end || m.start) >= now;
+    }).sort(function (a, b) { return Date.parse(a.start) - Date.parse(b.start); });
+    if (!list.length) return "";
+    var html = "", lastDay = null;
+    list.forEach(function (m) {
+      var day = isoDay(new Date(m.start));
+      if (day !== lastDay) { html += '<p class="eyebrow daylabel">' + (day === days[0] ? "Today" : "Tomorrow") + "</p>"; lastDay = day; }
+      var mins = m.end ? Math.round((Date.parse(m.end) - Date.parse(m.start)) / 60000) : 0;
+      var link = safeLink(m.link);
+      var cards = (m.card_ids || []).map(function (id) { return state.todos[id]; }).filter(function (c) { return c && isOpen(c); });
+      var clashes = (m.conflict_with || []).map(function (id) { return state.meetings[id]; }).filter(Boolean);
+      var prep = (m.prep || []).filter(Boolean).slice(0, 4);
+      html += '<div class="mtg"><span class="when">' + esc(clock(m.start)) + (mins > 0 ? "<br>" + (mins >= 60 && mins % 60 === 0 ? mins / 60 + " hr" : mins + " min") : "") + "</span>" +
+        "<div><h3>" + esc(m.title || "Meeting") + (m.needs_prep ? ' <span class="chip chip-warn"><span class="dot"></span><span class="t">Prep</span></span>' : "") + "</h3>" +
+        (prep.length ? "<ul>" + prep.map(function (p) { return "<li>" + esc(p) + "</li>"; }).join("") + "</ul>" : "") +
+        (link || cards.length ? '<div class="links">' + (link ? '<a class="chip src" href="' + esc(link) + '" target="_blank" rel="noopener">' + icon("meeting", "icon-sm") + '<span class="t">Open</span></a>' : "") +
+          cards.map(function (c) { return '<button class="chip" data-action="open" data-id="' + esc(c.id) + '"><span class="t">' + esc(c.title) + "</span></button>"; }).join("") + "</div>" : "") +
+        "</div>" +
+        (clashes.length ? '<p class="clash"><span class="dot"></span><span>Double-booked with ' + esc(joinAnd(clashes.map(function (x) { return (x.title || "another meeting") + " at " + clock(x.start); }))) + "</span></p>" : "") +
+        "</div>";
+    });
+    return "<section>" + sectionHead("Meetings", list.length) + html + "</section>";
+  }
+
+  // Email that needs the owner now: open email cards, in the board's urgency order.
+  function priorityHtml() {
+    if (!sectionOn("priority_email")) return "";
+    var list = openCards().filter(function (c) { return c.source_type === "outlook" && !c.suspicious && c.column !== "waiting_on" && c.column !== "later"; }).slice(0, 5);
+    if (!list.length) return "";
+    return "<section>" + sectionHead("Email to answer", list.length) + list.map(function (c, i) {
+      return '<button class="prow" data-action="open" data-id="' + esc(c.id) + '"><span class="rk" aria-hidden="true">' + (i + 1) + "</span><span>" +
+        '<span class="pt">' + esc(c.title) + '</span><span class="s">' + (c.source_label ? "<span>" + esc(c.source_label) + "</span>" : "") +
+        askedHtml(c, false, true) + statusChip(c) + "</span></span></button>";
+    }).join("") + "</section>";
+  }
+  function extraSectionsHtml() {
+    var up = meetingsHtml() + priorityHtml();
+    return metricsHtml() + (up ? '<div class="upnext">' + up + "</div>" : "");
+  }
+
   function renderToday() {
     var now = nowId();
     renderIndex = 0;
@@ -1433,65 +1722,367 @@ select.input { appearance: none; padding-right: 32px; background-image: linear-g
         '<span class="eyebrow">Nothing on your plate yet · first sweep ' + esc(nextSweep()) + "</span></div>" + extrasHtml();
     }
     var body = { desk: renderDesk, columns: renderColumns, day: renderDay, list: renderList }[layout()] || renderDesk;
-    return nudgeHtml() + body(now) + extrasHtml();
+    return extraSectionsHtml() + nudgeHtml() + body(now) + extrasHtml();
   }
 
   /* ------------------------------------------------------------------ Drafts */
-  var COMPOSE_LIMIT = 1800; // Long compose URLs fail in some browsers and Outlook builds (consult section 4).
+  var COMPOSE_LIMIT = 1800; // Long compose URLs fail in some browsers and Outlook builds (drafting.md).
+  var OLD_DRAFT_DAYS = 7;   // A draft this old is out of date even if nothing else changed.
   // An edit to an empty body is still the owner's edit: never fall back to the text they removed.
   function draftText(d) { return d.body_edited != null ? d.body_edited : (d.body || ""); }
   function recipients(list) { return (list || []).map(function (r) { return r.address || r.name; }).filter(Boolean); }
-  // Outlook on the web compose deeplink. It opens a NEW message: the thread is not quoted, so
-  // the page also offers "Open original" for a threaded reply. Multiple recipients use ";".
-  function composeUrl(d) {
+  function ownerEmail() { var c = config(); return c.owner_email || c.email || ""; }
+
+  /* Every Outlook URL the board opens is built here and only here, so a change to the link
+     shape is a one-function edit. Tested on a live work mailbox (Oct 2026):
+     - "thread": the tool-returned webLink (outlook.office365.com/owa/?ItemID=...) opens the
+       exact message with Reply on top. When the owner's email is known, the same ItemID is
+       reopened as outlook.office.com/mail/deeplink/read/<ItemID>?login_hint=<email>, which
+       helps a browser signed in to two work accounts pick the right one (the wrong account
+       shows "moved or deleted"). Only the ItemID from the tool's own link is reused; a URL is
+       never built from message text. Anything else passes through safeLink unchanged.
+     - "compose": a NEW message deeplink (not a reply), with login_hint as an extra parameter.
+       Untested live because opening compose can auto-save a draft in the mailbox.
+     - "draft": outlook_draft_link, present only when the owner asked for a real Outlook draft. */
+  function outlookUrl(d, mode) {
+    var email = ownerEmail(), hint = email ? "login_hint=" + encodeURIComponent(email) : "";
+    if (mode === "draft") return safeLink(d.outlook_draft_link);
+    if (mode === "thread") {
+      var raw = safeLink(d.thread_link);
+      if (!raw || !hint) return raw;
+      var u = new URL(raw), item = u.searchParams.get("ItemID");
+      if (item && /^outlook\.office(365)?\.com$/i.test(u.hostname) && /^\/owa\//i.test(u.pathname)) {
+        return "https://outlook.office.com/mail/deeplink/read/" + encodeURIComponent(item) + "?" + hint;
+      }
+      return raw;
+    }
     // Commas separate recipients; cc is left out because the deeplink's cc support is unverified (drafting.md).
     return "https://outlook.office.com/mail/deeplink/compose?to=" + encodeURIComponent(recipients(d.to).join(",")) +
-      "&subject=" + encodeURIComponent(d.subject || "") + "&body=" + encodeURIComponent(draftText(d));
+      "&subject=" + encodeURIComponent(d.subject || "") + "&body=" + encodeURIComponent(draftText(d)) + (hint ? "&" + hint : "");
   }
+
+  /* Out of date is decided here, not only by the librarian: a draft whose thread moved on
+     (status "stale"), whose to-do closed, or that is a week old. The reason is shown. */
+  function draftOutdated(d) {
+    if (d.status === "sent" || d.status === "dismissed") return "";
+    if (d.status === "stale") return d.stale_reason || "The thread moved on";
+    var c = d.card_id && state.todos[d.card_id];
+    if (c && c.deleted) return "Its to-do was deleted";
+    if (c && c.column === "done") return "Its to-do is done";
+    var age = d.created_at ? daysSince(isoDay(new Date(d.created_at))) : 0;
+    return age >= OLD_DRAFT_DAYS ? "Drafted " + age + " days ago" : "";
+  }
+  function draftBucket(d) { return d.status === "sent" ? "sent" : draftOutdated(d) ? "old" : "send"; }
+  function draftCard(d) { return (d.card_id && state.todos[d.card_id]) || null; }
+  function draftArea(d) { var c = draftCard(d); return (c && c.area) || d.area || ""; }
+  function draftAsk(d) { var c = draftCard(d) || {}; return { ask_date: d.ask_date || c.ask_date, added_date: c.added_date, created_at: d.created_at }; }
+
+  // Viewer choices for the Drafts tab, per browser. Storage can be blocked, so the in-memory copy wins.
+  var DRAFT_DEFAULTS = { filter: "send", area: "", sort: "newest", cols: 2, density: "full" };
+  function draftPrefs() {
+    if (!ui.draftPrefs) {
+      var p = {}; try { p = JSON.parse(localStorage.getItem("hq.drafts") || "{}") || {}; } catch (e) {}
+      ui.draftPrefs = Object.assign({}, DRAFT_DEFAULTS, p);
+    }
+    return ui.draftPrefs;
+  }
+  function setDraftPref(k, v) {
+    var p = draftPrefs(); p[k] = k === "cols" ? (+v || 2) : v;
+    try { localStorage.setItem("hq.drafts", JSON.stringify(p)); } catch (e) {}
+  }
+
   function draftStatus(d) {
-    if (d.status === "sent") return '<span class="chip chip-ok"><span class="t">Sent ' + esc(shortDate(d.sent_at)) + "</span></span>";
-    if (d.status === "stale") return '<span class="chip chip-warn"><span class="dot"></span><span class="t">Out of date</span></span>';
+    // Green only for a send that is confirmed: found in Sent Items, or the owner sent it another way.
+    // An unverified Outlook mark stays neutral until the evening run finds it.
+    if (d.status === "sent") {
+      if (d.sent_via === "other") return '<span class="chip chip-ok"><span class="t">Sent another way</span></span>';
+      if (d.sent_verified === false) return '<span class="chip"><span class="t">Sent · checking tonight</span></span>';
+      return '<span class="chip chip-ok"><span class="t">Sent ' + esc(shortDate(d.sent_at)) + "</span></span>";
+    }
+    if (draftOutdated(d)) return '<span class="chip chip-warn"><span class="dot"></span><span class="t">Out of date</span></span>';
     if (d.status === "edited") return '<span class="chip"><span class="t">Edited</span></span>';
     return '<span class="chip"><span class="t">Ready</span></span>';
   }
-  function letterHtml(d) {
-    var to = (d.to || []).map(function (r) { return esc(r.name || r.address) + (r.name && r.address ? ' <span class="addr">' + esc(r.address) + "</span>" : ""); }).join(", ");
-    var url = composeUrl(d);
-    var tooLong = url.length > COMPOSE_LIMIT;
-    var thread = safeLink(d.thread_link);
+  function slotText(s) {
+    var a = new Date(s.start); if (isNaN(a)) return "";
+    return DAY[a.getDay()].slice(0, 3) + " " + MON[a.getMonth()] + " " + a.getDate() + " " + clock(s.start);
+  }
+  function letterHtml(d, compact) {
+    var card = draftCard(d), bucket = draftBucket(d), old = draftOutdated(d), area = draftArea(d);
+    var to = (d.to || []).map(function (r) { return esc(r.name || r.address) + (r.name && r.address && !compact ? ' <span class="addr">' + esc(r.address) + "</span>" : ""); }).join(", ");
+    var thread = outlookUrl(d, "thread"), draftLink = outlookUrl(d, "draft");
+    var src = card ? sourceChip(card) : (thread ? sourceChip({ source_type: "outlook", source_label: d.subject, source_link: d.thread_link }) : "");
+    var du = card && isOpen(card) ? daysUntil(card.due_date) : null;
+    var due = du === null ? "" : du < 0 ? "OVERDUE" : du === 0 ? "DUE TODAY" : "DUE " + shortDate(card.due_date).toUpperCase();
+    var isNew = ui.seen && !ui.seen["d:" + d.id];
+
+    var flags = [];
+    if (d.content) flags.push('<span class="chip chip-accent"><span class="dot"></span><span class="t">Skim before sending</span></span>');
+    if (d.confidence === "medium" && !compact) flags.push('<span class="chip"><span class="t">Medium confidence</span></span>');
+    var lines = [];
+    if (old) lines.push('<p class="flag-line"><span class="dot"></span><span>Out of date: ' + esc(old) + "</span></p>");
+    if (bucket !== "sent") {
+      var waitingOn = (d.depends_on || []).map(function (id) { return state.drafts[id]; }).filter(function (x) { return x && x.status !== "sent"; });
+      if (waitingOn.length) lines.push('<p class="flag-line"><span class="dot"></span><span>Mentions an email that hasn’t gone out: ' +
+        waitingOn.map(function (x) { return '<button data-action="goto-draft" data-id="' + esc(x.id) + '">' + esc(x.subject || "another draft") + "</button>"; }).join(", ") + ". Send that first.</span></p>");
+    }
+
     var whyBits = [];
     if (d.why) whyBits.push("Why: " + esc(d.why));
-    whyBits.push(d.confidence === "medium" ? "Medium confidence, give it a read" : "High confidence");
+    if (d.slots_offered && d.slots_offered.length) whyBits.push("Offers " + esc(d.slots_offered.map(slotText).filter(Boolean).join(", ")));
     if (d.assumptions && d.assumptions.length) whyBits.push("Assumes " + esc(d.assumptions.join("; ")));
-    if (d.status === "stale" && d.stale_reason) whyBits.unshift("Out of date: " + esc(d.stale_reason));
-    var isNew = ui.seen && !ui.seen["d:" + d.id];
-    return '<article class="letter' + (d.status === "stale" ? " is-stale" : "") + (isNew ? " is-new" : "") + '" id="draft-' + esc(d.id) + '" data-draft="' + esc(d.id) + '"' + (isNew ? ' style="--i:' + Math.min(renderIndex++, 6) + '"' : "") + ">" +
+
+    var copyBtn = '<button class="btn" data-action="copy-draft" data-id="' + esc(d.id) + '">' + icon("copy") + "Copy</button>";
+    var isReply = d.kind ? d.kind === "reply" : !!thread;
+    var primary;
+    if (draftLink) primary = '<a class="btn btn-primary" href="' + esc(draftLink) + '" target="_blank" rel="noopener">Open your Outlook draft' + icon("external", "icon arrow") + "</a>" + copyBtn;
+    else if (isReply && thread) primary = '<a class="btn btn-primary" data-action="copy-open" data-id="' + esc(d.id) + '" href="' + esc(thread) + '" target="_blank" rel="noopener" title="Opens the email. Hit Reply and paste.">' + icon("copy") + "Copy and open thread</a>";
+    else if (isReply) primary = copyBtn.replace('class="btn"', 'class="btn btn-primary"') + '<span class="btn" aria-disabled="true">No link to the thread</span>';
+    else {
+      var url = outlookUrl(d, "compose");
+      primary = url.length > COMPOSE_LIMIT ? copyBtn.replace('class="btn"', 'class="btn btn-primary"') + '<span class="btn" aria-disabled="true">Long draft: copy instead</span>'
+        : '<a class="btn btn-primary" data-compose="' + esc(d.id) + '" href="' + esc(url) + '" target="_blank" rel="noopener">New email in Outlook' + icon("external", "icon arrow") + "</a>" + copyBtn;
+    }
+    var mark = ui.busy[d.id] ? '<span class="btn is-busy" aria-disabled="true" role="status">Checking Sent Items…</span>'
+      : '<button class="btn" data-action="mark-sent" data-id="' + esc(d.id) + '">' + icon("check") + "Mark as sent</button>";
+    var actions = bucket === "sent" ? '<div class="letter-actions">' + copyBtn + "</div>"
+      : ui.reasonFor === d.id ? '<div class="reasons" role="group" aria-label="Why dismiss this draft?"><span class="eyebrow">Why dismiss?</span>' +
+          DISMISS_REASONS.map(function (r) { return '<button class="btn" data-action="dismiss-reason" data-id="' + esc(d.id) + '" data-reason="' + r[0] + '">' + r[1] + "</button>"; }).join("") +
+          '<button class="btn btn-quiet" data-action="dismiss-cancel">Cancel</button></div>'
+      : '<div class="letter-actions">' + primary + mark + '<button class="btn btn-quiet" data-action="dismiss-draft" data-id="' + esc(d.id) + '">Dismiss</button></div>';
+
+    return '<article class="letter' + (old ? " is-stale" : "") + (compact ? " is-compact" : "") + (isNew ? " is-new" : "") + '" id="draft-' + esc(d.id) + '" data-draft="' + esc(d.id) + '"' + (isNew ? ' style="--i:' + Math.min(renderIndex++, 6) + '"' : "") + ">" +
       '<div class="letter-head">' +
+      '<div class="lrow"><span class="eyebrow">From</span><span class="from">' +
+      (area ? '<span class="chip chip-accent"><span class="dot"></span><span class="t">' + esc(area) + "</span></span>" : "") + src + askedHtml(draftAsk(d), !compact, bucket !== "sent") +
+      "</span>" + (due ? '<span class="due">' + due + "</span>" : "") + "</div>" +
       '<div class="lrow"><span class="eyebrow">To</span><span>' + (to || '<span class="addr">Needs a recipient</span>') + "</span>" + draftStatus(d) + "</div>" +
-      (d.cc && d.cc.length ? '<div class="lrow"><span class="eyebrow">Cc</span><span>' + d.cc.map(function (r) { return esc(r.name || r.address); }).join(", ") + "</span></div>" : "") +
+      (d.cc && d.cc.length && !compact ? '<div class="lrow"><span class="eyebrow">Cc</span><span>' + d.cc.map(function (r) { return esc(r.name || r.address); }).join(", ") + "</span></div>" : "") +
       '<div class="lrow"><span class="eyebrow">Subject</span><span class="subj">' + esc(d.subject) + "</span></div></div>" +
-      '<label class="sr" for="body-' + esc(d.id) + '">Draft to ' + esc(recipients(d.to).join(", ")) + "</label>" +
-      '<textarea class="letter-body" id="body-' + esc(d.id) + '" data-draft-body="' + esc(d.id) + '" spellcheck="true"' + (d.status === "sent" ? " readonly" : "") + ">" + esc(draftText(d)) + "</textarea>" +
-      '<p class="letter-why">' + whyBits.join(" · ") + "</p>" +
-      '<div class="letter-actions">' +
-      '<button class="btn btn-primary" data-action="copy-draft" data-id="' + esc(d.id) + '">' + icon("copy") + "Copy</button>" +
-      (thread ? '<a class="btn" href="' + esc(thread) + '" target="_blank" rel="noopener">Open original' + icon("external", "icon arrow") + "</a>"
-        : '<span class="btn" aria-disabled="true">No link to the original</span>') +
-      (tooLong ? '<span class="btn" aria-disabled="true">Long draft: copy instead</span>'
-        : '<a class="btn" data-compose="' + esc(d.id) + '" href="' + esc(url) + '" target="_blank" rel="noopener">New email in Outlook' + icon("external", "icon arrow") + "</a>") +
-      '<button class="btn btn-quiet" data-action="dismiss-draft" data-id="' + esc(d.id) + '">Dismiss</button>' +
-      "</div></article>";
+      (compact ? '<p class="snip">' + esc(draftText(d).replace(/\s+/g, " ").trim()) + "</p>"
+        : '<label class="sr" for="body-' + esc(d.id) + '">Draft to ' + esc(recipients(d.to).join(", ")) + "</label>" +
+          '<textarea class="letter-body" id="body-' + esc(d.id) + '" data-draft-body="' + esc(d.id) + '" spellcheck="true"' + (bucket === "sent" ? " readonly" : "") + ">" + esc(draftText(d)) + "</textarea>" +
+          (whyBits.length ? '<p class="letter-why">' + whyBits.join(" · ") + "</p>" : "")) +
+      (flags.length ? '<div class="flags">' + flags.join("") + "</div>" : "") + lines.join("") +
+      actions + "</article>";
+  }
+
+  var DRAFT_FILTERS = [["send", "To send"], ["old", "Out of date"], ["sent", "Sent"], ["all", "All"]];
+  var DRAFT_EMPTY = { send: "Nothing to send · next sweep ", old: "Nothing out of date", sent: "Nothing marked sent yet", all: "No drafts · next sweep " };
+  function sortDrafts(list, how) {
+    var newest = function (a, b) { return (b.created_at || "").localeCompare(a.created_at || ""); };
+    if (how === "oldest") return list.sort(function (a, b) { return askIso(draftAsk(a)).localeCompare(askIso(draftAsk(b))) || -newest(a, b); });
+    if (how === "area") return list.sort(function (a, b) { var x = draftArea(a), y = draftArea(b); return (!x) - (!y) || x.localeCompare(y) || newest(a, b); });
+    return list.sort(newest);
+  }
+  function visibleDrafts(p) {
+    return liveDrafts().filter(function (d) { return (p.filter === "all" || draftBucket(d) === p.filter) && (!p.area || draftArea(d) === p.area); });
+  }
+  function draftTools(p, all) {
+    var n = { send: 0, old: 0, sent: 0, all: all.length };
+    all.forEach(function (d) { n[draftBucket(d)]++; });
+    var names = [];
+    all.forEach(function (d) { var a = draftArea(d); if (a && names.indexOf(a) < 0) names.push(a); });
+    names.sort();
+    var opt = function (v, label, cur) { return '<option value="' + esc(v) + '"' + (v === cur ? " selected" : "") + ">" + esc(label) + "</option>"; };
+    var seg = function (k, items, cls, label) {
+      return '<div class="seg ' + cls + '" role="group" aria-label="' + label + '">' + items.map(function (it) {
+        return '<button data-action="dpref" data-k="' + k + '" data-v="' + it[0] + '" aria-pressed="' + (String(p[k]) === String(it[0])) + '"' + (it[2] ? ' aria-label="' + it[2] + '"' : "") + ">" + it[1] + "</button>";
+      }).join("") + "</div>";
+    };
+    return '<div class="dtools">' +
+      seg("filter", DRAFT_FILTERS.map(function (f) { return [f[0], f[1] + ' <span class="count">' + n[f[0]] + "</span>"]; }), "status", "Show") +
+      '<span class="grow"></span>' +
+      (names.length > 1 ? '<label class="sr" for="dArea">Area</label><select class="input" id="dArea" data-dpref="area">' + opt("", "All areas", p.area) + names.map(function (a) { return opt(a, a, p.area); }).join("") + "</select>" : "") +
+      '<label class="sr" for="dSort">Sort</label><select class="input" id="dSort" data-dpref="sort">' + opt("newest", "Newest", p.sort) + opt("oldest", "Oldest ask", p.sort) + opt("area", "By area", p.sort) + "</select>" +
+      seg("cols", [[1, "1", "One per row"], [2, "2", "Two per row"], [3, "3", "Three per row"]], "cols-pick", "Drafts per row") +
+      seg("density", [["full", "Full"], ["compact", "Compact"]], "density", "Density") +
+      "</div>";
   }
   function renderDrafts() {
-    var order = { ready: 0, edited: 0, stale: 1, sent: 2 };
-    var list = liveDrafts().sort(function (a, b) { return (order[a.status] || 0) - (order[b.status] || 0) || (b.created_at || "").localeCompare(a.created_at || ""); });
+    var p = draftPrefs(), all = liveDrafts();
     renderIndex = 0;
-    var voice = config().voice_profile_path;
-    var html = '<div class="narrow"><p class="help">For a threaded reply, open the original, hit Reply, and paste. Nothing here is ever sent for you.</p>';
-    if (!voice) html += '<div class="voice-nudge">' + icon("sparkle") + "<span>Say “learn my voice” to make these sound like you.</span></div>";
-    else html += '<div style="height:16px"></div>';
-    html += list.length ? '<div class="letters">' + list.map(letterHtml).join("") + "</div>" : emptyLine("No drafts waiting · next sweep " + nextSweep());
-    return html + "</div>";
+    var html = '<div class="' + (p.cols > 1 ? "" : "narrow") + '">';
+    if (!config().voice_profile_path) html += '<div class="voice-nudge">' + icon("sparkle") + "<span>Say “learn my voice” to make these sound like you.</span></div>";
+    if (!all.length) return html + emptyLine("No drafts waiting · next sweep " + nextSweep()) + "</div>";
+    html += draftTools(p, all);
+    var list = sortDrafts(visibleDrafts(p), p.sort);
+    if (p.filter === "old" && list.length) {
+      html += '<div class="bulk"><span>' + (list.length === 1 ? "This draft is" : "These drafts are") + " out of date.</span>" +
+        '<button class="btn" data-action="dismiss-old">Dismiss ' + (list.length === 1 ? "it" : "these " + list.length) + "</button></div>";
+    }
+    if (!list.length) return html + emptyLine(DRAFT_EMPTY[p.filter] + (/sweep $/.test(DRAFT_EMPTY[p.filter]) ? nextSweep() : "")) + "</div>";
+    var compact = p.density === "compact", lastArea = null, body = "";
+    list.forEach(function (d) {
+      if (p.sort === "area") {
+        var a = draftArea(d) || "Other";
+        if (a !== lastArea) { body += '<div class="group-head">' + sectionHead(a, list.filter(function (x) { return (draftArea(x) || "Other") === a; }).length) + "</div>"; lastArea = a; }
+      }
+      body += letterHtml(d, compact);
+    });
+    return html + '<div class="letters cols-' + (p.cols || 2) + '">' + body + "</div></div>";
+  }
+
+  /* ------------------------------------------------------------------
+     Closing the loop on a draft. Mark as sent checks Sent Items first, read-only,
+     as the viewer: an email from the owner to the first To address after the
+     draft was written. Found: the draft is sent and verified, its to-do closes.
+     Not found or not checkable: nothing changes, and "I sent it another way"
+     records an unverified send (the evening run rechecks those). Any edit on
+     screen is saved to body_edited so the evening voice learning sees the real
+     text. Dismiss records a reason for dismissal learning. Both release the
+     draft's offered times in meta/slots, and every change has Undo.
+     ------------------------------------------------------------------ */
+  var DISMISS_REASONS = [["handled_elsewhere", "Handled elsewhere"], ["not_needed", "Not needed"], ["wrong_person", "Wrong person"], ["bad_draft", "Bad draft"]];
+  function bodyOnScreen(id) {
+    var ta = document.getElementById("body-" + id);
+    return ta ? ta.value : null;
+  }
+  function releaseSlots(draftId) {
+    var list = ((state.meta.slots || {}).offered || []).filter(Boolean);
+    var mine = list.filter(function (o) { return o.draft_id === draftId; });
+    if (!mine.length) return function () {};
+    write("meta", "slots", { offered: list.filter(function (o) { return o.draft_id !== draftId; }) });
+    return function () { write("meta", "slots", { offered: ((state.meta.slots || {}).offered || []).concat(mine) }); };
+  }
+  function closeCard(cardId, resolution) {
+    var c = cardId && state.todos[cardId];
+    if (!c || !isOpen(c)) return function () {};
+    var prev = { column: c.column, done_date: c.done_date || null, prev_column: c.prev_column || null, resolution: c.resolution || null };
+    write("todos", cardId, { column: "done", done_date: todayIso(), prev_column: c.column, resolution: resolution, flagged: false });
+    return function () { write("todos", cardId, prev); };
+  }
+  // Collapse the letter first when it is about to leave the current view.
+  function leave(id, then) {
+    var el = document.getElementById("draft-" + id);
+    if (el && draftPrefs().filter !== "all") collapse(el, then); else then();
+  }
+  function recordSent(id, fields, body) {
+    var d = state.drafts[id]; if (!d) return;
+    var prev = { status: d.status || "ready", sent_verified: d.sent_verified == null ? null : d.sent_verified, sent_via: d.sent_via || null, sent_at: d.sent_at || null };
+    var patch = Object.assign({ status: "sent" }, fields);
+    if (body != null && body !== draftText(d)) patch.body_edited = body;
+    leave(id, function () {
+      write("drafts", id, patch);
+      var other = fields.sent_via === "other";
+      var undoCard = closeCard(d.card_id, fields.sent_verified ? "Email sent " + shortDate(fields.sent_at) : other ? "Sent another way (you confirmed)" : "Marked sent; checking Sent Items tonight");
+      var undoSlots = releaseSlots(id);
+      toast(fields.sent_verified ? "Sent · found in your Sent Items" : other ? "Marked as sent another way" : "Marked sent · checking tonight", "Undo", function () { write("drafts", id, prev); undoCard(); undoSlots(); });
+    });
+  }
+  // The search runs with recipient, sender, and afterDateTime filters, so any hit is an email
+  // the owner sent that person after the draft was made. Tested on a live mailbox (Oct 2026):
+  // with a recipient filter Outlook returns "recipients": null, so we cannot re-check the
+  // address in the result; we check the sender and the subject instead. The payload arrives as
+  // an array, one object, or text holding JSON objects back to back, depending on the build.
+  function sentHits(res) {
+    var p = res && res.payload !== undefined ? res.payload : res, list = [];
+    if (typeof p === "string") {
+      p.split(/}\s*(?=\{)/).forEach(function (part, i, all) {
+        try { list.push(JSON.parse(i < all.length - 1 ? part + "}" : part)); } catch (e) {}
+      });
+    } else if (Array.isArray(p)) list = p;
+    else if (p && Array.isArray(p.value)) list = p.value;
+    else if (p && typeof p === "object") list = [p];
+    return list.filter(function (m) { return m && m.sentDateTime; });
+  }
+  function plainSubject(s) { return String(s || "").toLowerCase().replace(/^\s*((re|fw|fwd)\s*:\s*)+/g, "").replace(/\s+/g, " ").trim(); }
+  // Returns {at} when an email with the draft's subject went out, {other} when the owner
+  // emailed that person but under another subject (the owner decides), or null.
+  function sentMatch(res, d, owner) {
+    var hits = sentHits(res).filter(function (m) { return !m.sender || String(m.sender).toLowerCase() === owner.toLowerCase(); });
+    if (!hits.length) return null;
+    var want = plainSubject(d.subject), best = "";
+    hits.forEach(function (m) {
+      var got = plainSubject(m.subject);
+      if (want && got && (got === want || got.indexOf(want) >= 0 || want.indexOf(got) >= 0) && m.sentDateTime > best) best = m.sentDateTime;
+    });
+    return best ? { at: best } : { other: true };
+  }
+  function markSent(id) {
+    var d = state.drafts[id]; if (!d || ui.busy[id]) return;
+    var body = bodyOnScreen(id);
+    var address = (d.to || []).map(function (r) { return r.address; }).filter(Boolean)[0], owner = ownerEmail();
+    // Two ways out when Sent Items can't confirm it. "Mark as sent anyway" stays unverified
+    // (the evening run rechecks it and reopens the card after 2 business days if it never shows).
+    // "I sent it another way" (another account, phone) is trusted and never rechecked.
+    var offerOther = function (why) {
+      toast(why, "Mark as sent anyway", function () { recordSent(id, { sent_verified: false, sent_via: "outlook", sent_at: new Date().toISOString() }, body); }, 12000,
+        ["I sent it another way", function () { recordSent(id, { sent_verified: false, sent_via: "other", sent_at: new Date().toISOString() }, body); }]);
+    };
+    if (state.demo) { offerOther("Sample board: Sent Items can't be checked here"); return; }
+    if (!address) { offerOther("No address to look for in Sent Items"); return; }
+    if (!owner) { offerOther("Can't check Sent Items: your email isn't saved on this board"); return; }
+    ui.busy[id] = true; scheduleRender();
+    var input = { recipient: address, sender: owner, limit: 10 };
+    if (d.created_at) input.afterDateTime = d.created_at;
+    mcp().then(function (api) {
+      if (!api) throw { code: "not_granted" };
+      return api.callTool(M365, "outlook_email_search", input, { cache: false });
+    }).then(function (res) {
+      delete ui.busy[id];
+      var hit = sentMatch(res, d, owner);
+      if (hit && hit.at) recordSent(id, { sent_verified: true, sent_via: "outlook", sent_at: hit.at }, body);
+      else { scheduleRender(); offerOther(hit ? "Found an email to them, but not with this subject" : "Not in your Sent Items yet"); }
+    }, function (err) {
+      delete ui.busy[id]; scheduleRender();
+      offerOther(mcpProblem(err, M365) || ((err && err.code) === "server_unavailable" ? "Outlook didn't answer. Try again in a minute" : "Couldn't check Sent Items"));
+    });
+  }
+  function dismissDrafts(ids, reason) {
+    var undos = [];
+    var now = new Date().toISOString();
+    ids.forEach(function (id) {
+      var d = state.drafts[id]; if (!d) return;
+      var prev = { status: d.status || "ready", dismissed_reason: d.dismissed_reason || null, dismissed_at: d.dismissed_at || null };
+      var patch = { status: "dismissed", dismissed_at: now };
+      if (reason) patch.dismissed_reason = reason;
+      write("drafts", id, patch);
+      var undoSlots = releaseSlots(id);
+      undos.push(function () { write("drafts", id, prev); undoSlots(); });
+    });
+    ui.reasonFor = null;
+    toast(ids.length === 1 ? "Draft dismissed" : ids.length + " drafts dismissed", "Undo", function () { undos.forEach(function (u) { u(); }); });
+  }
+
+  /* Draft this: fires the owner's "Personal HQ: drafter" task with text "card_id=<id>".
+     The new draft arrives through the db like any other; until then the card shows
+     Drafting (cleared when its draft_id changes, or after 20 minutes). */
+  var DRAFTING_MAX_MS = 20 * 60000;
+  function draftThis(cardId) {
+    var c = state.todos[cardId]; if (!c || ui.drafting[cardId]) return;
+    var phrase = "Draft an email for my HQ card: " + c.title;
+    var id = config().drafter_trigger_id;
+    if (state.demo) { sayInstead("Sample board", phrase); return; }
+    if (!id) { sayInstead("Drafting from the board isn't set up yet", phrase); return; }
+    ui.drafting[cardId] = { at: Date.now(), had: c.draft_id || "" };
+    refreshDetail(); scheduleRender();
+    fireTrigger(id, "card_id=" + cardId).then(function () {
+      toast("Drafting. It shows up on the Drafts tab in a few minutes");
+    }, function (err) {
+      if (AMBIGUOUS.indexOf(err && err.code) >= 0) { toast("Couldn't confirm drafting started. Check back before trying again", null, null, 9000); return; }
+      delete ui.drafting[cardId]; refreshDetail(); scheduleRender();
+      sayInstead(mcpProblem(err, TRIGGERS) || "Drafting didn't start", phrase);
+    });
+  }
+  function checkDrafting() {
+    Object.keys(ui.drafting).forEach(function (cardId) {
+      var job = ui.drafting[cardId], c = state.todos[cardId];
+      var fresh = c && c.draft_id && c.draft_id !== job.had && state.drafts[c.draft_id];
+      if (fresh || !c || Date.now() - job.at > DRAFTING_MAX_MS) {
+        delete ui.drafting[cardId];
+        if (fresh) toast("Draft ready · " + c.title, "See it", function () { gotoDraft(c.draft_id); });
+      }
+    });
+  }
+  function gotoDraft(id) {
+    closeDialog(document.getElementById("detail"));
+    var d = state.drafts[id]; if (!d) return;
+    var p = draftPrefs();
+    // Show the draft even if the current filter hides it.
+    if (!visibleDrafts(p).some(function (x) { return x.id === id; })) { p.filter = "all"; p.area = ""; }
+    ui.tab = "drafts"; renderAll();
+    var el = document.getElementById("draft-" + id); if (el) el.scrollIntoView({ behavior: REDUCED ? "auto" : "smooth", block: "start" });
   }
 
   /* ------------------------------------------------------------------ Prompts */
@@ -1564,6 +2155,7 @@ select.input { appearance: none; padding-right: 32px; background-image: linear-g
   function renderAll() {
     var active = document.activeElement;
     if (active && active.hasAttribute && active.hasAttribute("data-draft-body")) { ui.deferred = true; return; }
+    checkDrafting();
     renderHeader(); renderTabs(); renderFoot();
     var view = document.getElementById("view");
     view.innerHTML = { today: renderToday, drafts: renderDrafts, prompts: renderPrompts, week: renderWeek }[ui.tab]();
@@ -1605,13 +2197,18 @@ select.input { appearance: none; padding-right: 32px; background-image: linear-g
 
   /* ------------------------------------------------------------------ Toast */
   var toastTimer = null;
-  function toast(label, actionText, onAction, ms) {
+  // second: an optional [label, fn] for a second choice (Mark as sent offers two ways out).
+  function toast(label, actionText, onAction, ms, second) {
     var host = document.getElementById("toastHost");
     clearTimeout(toastTimer);
-    host.innerHTML = '<div class="toast" role="status"><span class="eyebrow t">' + esc(label) + "</span>" +
-      (actionText ? '<button class="btn btn-quiet" data-toast-action>' + esc(actionText) + "</button>" : "") + "</div>";
-    var el = host.firstChild;
-    if (actionText) el.querySelector("[data-toast-action]").addEventListener("click", function () { hideToast(); onAction(); });
+    var acts = [];
+    if (actionText) acts.push([actionText, onAction]);
+    if (second) acts.push(second);
+    host.innerHTML = '<div class="toast' + (acts.length > 1 ? " has-two" : "") + '" role="status"><span class="eyebrow t">' + esc(label) + "</span>" +
+      acts.map(function (a, i) { return '<button class="btn btn-quiet" data-toast-action="' + i + '">' + esc(a[0]) + "</button>"; }).join("") + "</div>";
+    host.querySelectorAll("[data-toast-action]").forEach(function (b) {
+      b.addEventListener("click", function () { hideToast(); acts[+b.getAttribute("data-toast-action")][1](); });
+    });
     toastTimer = setTimeout(hideToast, ms || 6000);
   }
   function hideToast() {
@@ -1684,13 +2281,15 @@ select.input { appearance: none; padding-right: 32px; background-image: linear-g
     ui.openId = id;
     var dlg = document.getElementById("detail");
     var s = SOURCES[c.source_type] || SOURCES.manual;
-    var link = safeLink(c.source_link);
+    var link = c.source_type === "outlook" ? outlookUrl({ thread_link: c.source_link }, "thread") : safeLink(c.source_link);
     var draft = c.draft_id && state.drafts[c.draft_id] && state.drafts[c.draft_id].status !== "dismissed";
+    // Draft this: for an open, non-suspicious card with no live draft.
+    var canDraft = !draft && isOpen(c) && !c.suspicious;
     var ck = (c.checklist || []).map(function (x, i) {
       return '<label class="ck' + (x.done ? " done" : "") + '"><input type="checkbox" data-ck="' + i + '"' + (x.done ? " checked" : "") + "><span>" + esc(x.text) + "</span></label>";
     }).join("");
     dlg.innerHTML = '<div class="dlg" tabindex="-1" autofocus>' +
-      '<div class="dlg-top"><div class="chips">' + sourceChip(c) + statusChip(c) + (c.confidence === "medium" ? '<span class="chip"><span class="t">Medium confidence</span></span>' : "") + "</div>" +
+      '<div class="dlg-top"><div class="chips">' + sourceChip(c) + askedHtml(c, true, isOpen(c)) + statusChip(c) + (c.confidence === "medium" ? '<span class="chip"><span class="t">Medium confidence</span></span>' : "") + "</div>" +
       '<button class="icon-btn" data-action="close" aria-label="Close">' + icon("close") + "</button></div>" +
       '<div><label class="sr" for="detailTitle">Title</label><textarea class="title-input" id="detailTitle" rows="1" data-field="title">' + esc(c.title) + "</textarea>" +
       (c.why ? '<p class="why-line"><b>Why it is here:</b> ' + esc(c.why) + "</p>" : "") + "</div>" +
@@ -1707,12 +2306,17 @@ select.input { appearance: none; padding-right: 32px; background-image: linear-g
       '<div class="field"><span class="eyebrow">Steps</span><div class="checklist">' + ck + '</div><input class="input" data-add-step placeholder="Add a step and press Enter"></div>' +
       '<div class="dlg-links">' +
       (link ? '<a class="btn" href="' + esc(link) + '" target="_blank" rel="noopener">' + esc(s.open) + icon("external", "icon arrow") + "</a>" : "") +
-      (draft ? '<button class="btn" data-action="goto-draft" data-id="' + esc(c.draft_id) + '">See the draft reply</button>' : "") +
+      (draft ? '<button class="btn" data-action="goto-draft" data-id="' + esc(c.draft_id) + '">See the draft</button>' : "") +
+      (canDraft ? (ui.drafting[id] ? '<span class="btn is-busy" aria-disabled="true" role="status"><canvas class="orb live" data-orb="working" aria-hidden="true"></canvas>Drafting…</span>'
+        : '<button class="btn" data-action="draft-this" data-id="' + esc(id) + '">' + icon("sparkle") + "Draft this</button>") : "") +
       "</div>" +
       '<div class="dlg-foot"><button class="btn btn-quiet" data-action="delete" data-id="' + esc(id) + '">Delete</button>' +
       '<button class="btn" data-action="close">Close</button></div></div>';
-    openDialog(dlg);
+    if (!dlg.open) openDialog(dlg);
+    mountOrbs();
   }
+  // Re-render an open detail dialog in place (Draft this changes its button).
+  function refreshDetail() { var dlg = document.getElementById("detail"); if (dlg.open && ui.openId) openDetail(ui.openId); }
   function saveDetailField(el) {
     var id = ui.openId, c = state.todos[id]; if (!c) return;
     var f = el.getAttribute("data-field"), v = el.value.trim();
@@ -1801,6 +2405,14 @@ select.input { appearance: none; padding-right: 32px; background-image: linear-g
   }
 
   /* ------------------------------------------------------------------ Clipboard */
+  // Synchronous copy for the one path that must finish inside the click (Copy and open thread).
+  function copyNow(text) {
+    var ta = document.createElement("textarea"); ta.value = text; ta.setAttribute("readonly", "");
+    ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select();
+    var ok = false; try { ok = document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta);
+    if (!ok && navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).catch(function () {});
+  }
   function copyText(text, label) {
     var done = function () { toast(label || "Copied"); };
     var fallback = function () {
@@ -1833,21 +2445,26 @@ select.input { appearance: none; padding-right: 32px; background-image: linear-g
       case "move": moveTo(ui.openId, t.getAttribute("data-col")); closeDialog(document.getElementById("detail")); break;
       case "delete": closeDialog(document.getElementById("detail")); deleteCard(id); break;
       case "restore": write("todos", id, { deleted: false, deleted_date: null }); toast("Restored"); break;
-      case "goto-draft":
-        closeDialog(document.getElementById("detail")); ui.tab = "drafts"; renderAll();
-        var el = document.getElementById("draft-" + id); if (el) el.scrollIntoView({ behavior: REDUCED ? "auto" : "smooth", block: "start" });
+      case "goto-draft": gotoDraft(id); break;
+      case "triage": runTriage(); break;
+      case "draft-this": draftThis(id); break;
+      case "dpref": setDraftPref(t.getAttribute("data-k"), t.getAttribute("data-v")); renderAll(); break;
+      case "mark-sent": markSent(id); break;
+      case "copy-open":
+        // The link itself opens the thread (an <a target=_blank> survives popup rules that
+        // block window.open in a framed page). Copy synchronously first, while the click
+        // still counts as a user gesture.
+        var od = state.drafts[id];
+        if (od) { var txt = bodyOnScreen(id); copyNow(txt != null ? txt : draftText(od)); toast("Copied. Hit Reply and paste"); }
         break;
       case "copy-draft":
         // Copy what is on screen: an edit is saved on blur, so the snapshot can still hold the old body.
         var d = state.drafts[id], ta = document.querySelector('[data-draft-body="' + id + '"]');
         if (d) copyText(ta ? ta.value : draftText(d), "Draft copied"); break;
-      case "dismiss-draft":
-        var letter = t.closest(".letter"), prevStatus = (state.drafts[id] || {}).status;
-        collapse(letter, function () {
-          write("drafts", id, { status: "dismissed" });
-          toast("Draft dismissed", "Undo", function () { write("drafts", id, { status: prevStatus || "ready" }); });
-        });
-        break;
+      case "dismiss-draft": ui.reasonFor = id; renderAll(); var first = document.querySelector(".reasons .btn"); if (first) first.focus(); break;
+      case "dismiss-cancel": ui.reasonFor = null; renderAll(); break;
+      case "dismiss-reason": var reason = t.getAttribute("data-reason"); leave(id, function () { dismissDrafts([id], reason); }); break;
+      case "dismiss-old": dismissDrafts(visibleDrafts(draftPrefs()).filter(function (x) { return draftBucket(x) === "old"; }).map(function (x) { return x.id; }), null); break;
       case "copy-prompt": var p = state.prompts[id]; if (p) copyText(p.prompt, "Prompt copied"); break;
       case "copy-path": copyText((state.meta.weekly || {}).week_file_path || "", "Path copied"); break;
       case "settings": toggleSettings(); break;
@@ -1866,10 +2483,10 @@ select.input { appearance: none; padding-right: 32px; background-image: linear-g
     var a = e.target.closest("[data-compose]"); if (!a) return;
     var ta = document.querySelector('[data-draft-body="' + a.getAttribute("data-compose") + '"]');
     var d = state.drafts[a.getAttribute("data-compose")];
-    if (ta && d) a.href = composeUrl(Object.assign({}, d, { body_edited: ta.value }));
+    if (ta && d) a.href = outlookUrl(Object.assign({}, d, { body_edited: ta.value }), "compose");
   });
   document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape") { toggleSettings(false); }
+    if (e.key === "Escape") { toggleSettings(false); if (ui.reasonFor) { ui.reasonFor = null; renderAll(); } }
     var card = e.target.classList && e.target.classList.contains("card") ? e.target : null;
     if (!card) return;
     var id = card.getAttribute("data-id");
@@ -1893,6 +2510,7 @@ select.input { appearance: none; padding-right: 32px; background-image: linear-g
   document.addEventListener("change", function (e) {
     var el = e.target;
     if (el.matches("select[data-field], input[type=date][data-field]")) saveDetailField(el);
+    if (el.hasAttribute("data-dpref")) { setDraftPref(el.getAttribute("data-dpref"), el.value); renderAll(); var again = document.getElementById(el.id); if (again) again.focus(); }
     if (el.hasAttribute("data-ck")) {
       var c = state.todos[ui.openId]; if (!c) return;
       var list = (c.checklist || []).map(function (x) { return Object.assign({}, x); });
@@ -1972,18 +2590,18 @@ select.input { appearance: none; padding-right: 32px; background-image: linear-g
     var runs = [[0, 17, 3, "evening"], [0, 12, 3, "midday"], [0, 7, 2, "morning"], [-1, 17, 3, "evening"]];
     var lastRun = runs.map(function (r) { return { at: at(r[0], r[1], r[2]), variant: r[3] }; }).filter(function (r) { return Date.parse(r.at) < Date.now(); })[0];
     var T = [
-      ["t1", "Send Sam the Q3 store letter", "Stores", "this_week", "outlook", "Sam Ortiz · RE: Q3 store letter", -1, 0, "high", { draft_id: "d1", why: "Sam asked you by name for it by Friday", detail: "Sam needs the Q3 letter for the regional managers before Friday's call. You said Tuesday you would send it Thursday." }],
-      ["t2", "Confirm caterer headcount with Priya", "Fall Event", "inbox", "outlook", "Priya Shah · Fall Event catering", 0, 1, "high", { draft_id: "d3", why: "Priya needs a number to lock the order", detail: "Priya asked for a final headcount so the caterer can hold the date." }],
-      ["t3", "Reply to Oak Park landlord on renewal timing", "Vendors", "this_week", "outlook", "Alan Brooks · Oak Park renewal", -2, 3, "medium", { draft_id: "d2", why: "Alan asked when you can meet to talk renewal", detail: "Alan wants a time next week to walk through the renewal. Terms are in the original message [see original]." }],
+      ["t1", "Send Sam the Q3 store letter", "Stores", "this_week", "outlook", "Sam Ortiz · RE: Q3 store letter", -1, 0, "high", { draft_id: "d1", ask_date: addDays(-3), why: "Sam asked you by name for it by Friday", detail: "Sam needs the Q3 letter for the regional managers before Friday's call. You said Tuesday you would send it Thursday." }],
+      ["t2", "Confirm caterer headcount with Priya", "Fall Event", "inbox", "outlook", "Priya Shah · Fall Event catering", 0, 1, "high", { draft_id: "d3", ask_date: addDays(-1), why: "Priya needs a number to lock the order", detail: "Priya asked for a final headcount so the caterer can hold the date." }],
+      ["t3", "Reply to Oak Park landlord on renewal timing", "Vendors", "this_week", "outlook", "Alan Brooks · Oak Park renewal", -2, 3, "medium", { draft_id: "d2", ask_date: addDays(-6), why: "Alan asked when you can meet to talk renewal", detail: "Alan wants a time next week to walk through the renewal. Terms are in the original message [see original]." }],
       ["t4", "Review: message asks for an unusual action", "", "inbox", "outlook", "Unknown sender · urgent request", 0, null, null, { suspicious: true, suspicious_reason: "It asks you to buy gift cards urgently and reply with the codes, from an address outside your company.", why: "Flagged by the morning librarian" }],
-      ["t5", "Share interview notes on store manager candidate", "People", "this_week", "meeting", "Hiring sync · candidate debrief", -2, 2, "medium", { why: "You said in the hiring sync you would send notes", detail: "Dana asked everyone on the panel to share notes before the decision on Monday." }],
-      ["t6", "Holiday staffing numbers", "People", "waiting_on", "teams", "Dana Kim · holiday staffing", -11, null, null, { waiting_on: "Dana Kim", waiting_since: addDays(-9), why: "You asked Dana for the numbers" }],
-      ["t7", "Pick the Fall Event venue layout", "Fall Event", "this_week", "meeting", "Event planning · Sep 30 meeting", -1, 5, "medium", { confidence: "medium", why: "Sounded like your call in the planning meeting", checklist: [{ text: "Compare the two floor plans", done: true }, { text: "Check stage power", done: false }, { text: "Send pick to Priya", done: false }] }],
+      ["t5", "Share interview notes on store manager candidate", "People", "this_week", "meeting", "Hiring sync · candidate debrief", -2, 2, "medium", { draft_id: "d4", ask_date: addDays(-2), why: "You said in the hiring sync you would send notes", detail: "Dana asked everyone on the panel to share notes before the decision on Monday." }],
+      ["t6", "Holiday staffing numbers", "People", "waiting_on", "teams", "Dana Kim · holiday staffing", -11, null, null, { draft_id: "d8", waiting_on: "Dana Kim", waiting_since: addDays(-9), ask_date: addDays(-12), why: "You asked Dana for the numbers" }],
+      ["t7", "Pick the Fall Event venue layout", "Fall Event", "this_week", "meeting", "Event planning · Sep 30 meeting", -1, 5, "medium", { confidence: "medium", ask_date: addDays(-4), why: "Sounded like your call in the planning meeting", checklist: [{ text: "Compare the two floor plans", done: true }, { text: "Check stage power", done: false }, { text: "Send pick to Priya", done: false }] }],
       ["t8", "Call Marcus back about the Westfield delivery", "Vendors", "inbox", "phone", "Marcus Lee · phone call", 0, 2, "medium", { why: "You logged this from a call" }],
       ["t9", "Display fixture quote", "Vendors", "waiting_on", "outlook", "Reyna Display · fixture quote", -4, null, null, { waiting_on: "Reyna Display", waiting_since: addDays(-3), why: "You asked for a revised quote" }],
-      ["t10", "Draft talking points for Monday managers call", "Stores", "later", "brain", "Your notes · managers call", -16, null, "low", { why: "From your note about the Monday call" }],
-      ["t11", "Answer Lena about the window display photos", "Stores", "inbox", "pocket", "Store walk recording · Lena", -1, 4, null, { confidence: "medium", why: "Heard on your store walk recording" }],
-      ["t12", "Approve October store hours", "Stores", "done", "outlook", "Sam Ortiz · October hours", -3, null, null, { done_date: addDays(-1), why: "Sam asked for approval" }],
+      ["t10", "Draft talking points for Monday managers call", "Stores", "later", "brain", "Your notes · managers call", -16, null, "low", { draft_id: "d5", why: "From your note about the Monday call" }],
+      ["t11", "Answer Lena about the window display photos", "Stores", "inbox", "pocket", "Store walk recording · Lena", -1, 4, null, { draft_id: "d6", confidence: "medium", why: "Heard on your store walk recording" }],
+      ["t12", "Approve October store hours", "Stores", "done", "outlook", "Sam Ortiz · October hours", -3, null, null, { draft_id: "d7", done_date: addDays(-1), resolution: "Email sent " + shortDate(addDays(-1)), why: "Sam asked for approval" }],
       ["t13", "Renew the parking permit", "", "inbox", "manual", "Added by you", -5, null, null, { deleted: true, deleted_date: addDays(-1) }]
     ];
     state.todos = {};
@@ -1994,17 +2612,48 @@ select.input { appearance: none; padding-right: 32px; background-image: linear-g
         source_link: r[4] === "outlook" ? link : (r[4] === "teams" ? "https://teams.microsoft.com/" : null)
       }, r[9]);
     });
+    var sam = [{ name: "Sam Ortiz", address: "sam.ortiz@example.com" }];
     state.drafts = {
-      d1: { id: "d1", card_id: "t1", to: [{ name: "Sam Ortiz", address: "sam.ortiz@example.com" }], subject: "RE: Q3 store letter",
+      d1: { id: "d1", card_id: "t1", kind: "reply", to: sam, subject: "RE: Q3 store letter", ask_date: addDays(-3),
         body: "Hi Sam,\n\nThe Q3 letter for the regional managers is [attached]. The two changes from last quarter are the new weekend hours and the holiday staffing plan, both on page one.\n\nHappy to walk anyone through it before Friday.\n\nJordan",
         status: "ready", thread_link: link, why: "Sam asked for the Q3 letter by Friday; you said Tuesday you would send it Thursday.", confidence: "high", assumptions: ["the letter is attached before sending"], created_at: lastRun.at },
-      d2: { id: "d2", card_id: "t3", to: [{ name: "Alan Brooks", address: "alan@oakparkproperties.example" }], subject: "RE: Oak Park renewal",
-        body: "Hi Alan,\n\nThanks for reaching out. I can meet [Tuesday 10:00 or Wednesday 2:00] next week to talk through the renewal. Let me know which works and I will send an invite.\n\nJordan",
-        body_edited: "Hi Alan,\n\nThanks for reaching out. Tuesday at 10:00 works on my end to talk through the renewal. I will send an invite.\n\nBest,\nJordan",
-        status: "edited", thread_link: link, why: "Alan asked when you can meet about the renewal.", confidence: "medium", assumptions: ["dropped cc: leasing@oakpark"], created_at: at(-1, 17, 4) },
-      d3: { id: "d3", card_id: "t2", to: [{ name: "Priya Shah", address: "priya.shah@example.com" }], subject: "RE: Fall Event catering",
+      d2: { id: "d2", card_id: "t3", kind: "reply", to: [{ name: "Alan Brooks", address: "alan@oakparkproperties.example" }], subject: "RE: Oak Park renewal", ask_date: addDays(-6),
+        body: "Hi Alan,\n\nThanks for reaching out. I can meet Tuesday at 10:00 or Wednesday at 2:00 next week to talk through the renewal. Let me know which works and I will send an invite.\n\nJordan",
+        body_edited: "Hi Alan,\n\nThanks for reaching out. Tuesday at 10:00 or Wednesday at 2:00 both work on my end to talk through the renewal. Pick one and I will send an invite.\n\nBest,\nJordan",
+        status: "edited", thread_link: link, why: "Alan asked when you can meet about the renewal.", confidence: "medium", assumptions: ["dropped cc: leasing@oakpark"], created_at: at(-1, 17, 4),
+        slots_offered: [{ start: at(8, 10, 0), end: at(8, 10, 30) }, { start: at(9, 14, 0), end: at(9, 14, 30) }] },
+      d3: { id: "d3", card_id: "t2", kind: "reply", to: [{ name: "Priya Shah", address: "priya.shah@example.com" }], subject: "RE: Fall Event catering", ask_date: addDays(-1),
         body: "Hi Priya,\n\nWe are at [120] confirmed. I will send the final number [by when] so the caterer can lock the order.\n\nJordan",
-        status: "ready", thread_link: link, why: "Priya needs a headcount to hold the caterer.", confidence: "high", assumptions: [], created_at: lastRun.at }
+        status: "ready", thread_link: link, why: "Priya needs a headcount to hold the caterer.", confidence: "high", assumptions: [], created_at: lastRun.at },
+      d4: { id: "d4", card_id: "t5", kind: "new", to: [{ name: "Dana Kim", address: "dana.kim@example.com" }], subject: "Notes on the store manager candidate", ask_date: addDays(-2),
+        body: "Hi Dana,\n\nMy notes from the panel: strong on scheduling and vendor work, lighter on hiring experience. I would move her forward to the final round.\n\nJordan",
+        status: "ready", why: "You told the hiring panel you would share notes before Monday.", confidence: "high", assumptions: [], created_at: lastRun.at },
+      d5: { id: "d5", card_id: "t10", kind: "new", content: true, depends_on: ["d1"], to: [{ name: "Store managers", address: "managers@example.com" }], subject: "Talking points for Monday", ask_date: addDays(-16),
+        body: "Hi all,\n\nThree things for Monday:\n\n1. Weekend hours start the first Saturday of the month.\n2. Holiday staffing: Dana is finalizing numbers.\n3. The Q3 letter [went out to Sam on Thursday: only once that email goes out].\n\nJordan",
+        status: "ready", why: "From your note about the Monday call.", confidence: "medium", assumptions: ["the holiday numbers are still with Dana"], created_at: lastRun.at },
+      d6: { id: "d6", card_id: "t11", kind: "reply", to: [{ name: "Lena Park", address: "lena.park@example.com" }], subject: "RE: Window display photos", ask_date: addDays(-1),
+        body: "Hi Lena,\n\nThe photos look great. Go with the second layout.\n\nJordan",
+        status: "stale", stale_reason: "Lena sent new photos this morning", thread_link: link, why: "Lena asked which display layout to use.", confidence: "medium", assumptions: [], created_at: at(-1, 12, 3) },
+      d7: { id: "d7", card_id: "t12", kind: "reply", to: sam, subject: "RE: October hours", ask_date: addDays(-3),
+        body: "Hi Sam,\n\nApproved. Thanks for pulling these together.\n\nJordan",
+        status: "sent", sent_verified: true, sent_via: "outlook", sent_at: at(-1, 9, 41), thread_link: link, why: "Sam asked for approval.", confidence: "high", assumptions: [], created_at: at(-2, 17, 3) },
+      d8: { id: "d8", card_id: "t6", kind: "reply", to: [{ name: "Dana Kim", address: "dana.kim@example.com" }], subject: "RE: Holiday staffing", ask_date: addDays(-12),
+        body: "Hi Dana,\n\nChecking in on the holiday staffing numbers. Could you send them by [when]?\n\nJordan",
+        status: "ready", thread_link: "https://teams.microsoft.com/", why: "You asked Dana for the numbers last week.", confidence: "high", assumptions: [], created_at: at(-9, 7, 2) }
+    };
+    // Meetings start an hour or two from now so the sample always has something upcoming.
+    var soon = new Date(); soon.setMinutes(0, 0, 0); soon.setHours(soon.getHours() + 2);
+    var later = function (mins) { return new Date(soon.getTime() + mins * 60000).toISOString(); };
+    state.meetings = {
+      m1: { id: "m1", title: "Fall Event planning", start: later(0), end: later(60), needs_prep: true, link: "https://teams.microsoft.com/",
+        prep: ["You owe Priya the catering headcount", "Priya owes you the stage power answer", "Last touch: Sep 30 planning meeting"], card_ids: ["t2", "t7"], conflict_with: ["m2"] },
+      m2: { id: "m2", title: "Westfield delivery call with Marcus", start: later(30), end: later(60), needs_prep: false, card_ids: ["t8"], conflict_with: ["m1"] },
+      m3: { id: "m3", title: "Monday managers call", start: at(1, 9, 0), end: at(1, 9, 30), needs_prep: true, prep: ["Talking points are drafted"], card_ids: ["t10"] }
+    };
+    state.metrics = {
+      k1: { id: "k1", label: "Store traffic vs plan", value: "104%", period: "Last week", as_of: addDays(-2), source_label: "Weekly ops report", source_link: link },
+      k2: { id: "k2", label: "Open staffing gaps", value: "6", period: "This week", as_of: addDays(-1), source_label: "Dana's Teams update", source_link: "https://teams.microsoft.com/" },
+      k3: { id: "k3", label: "Q3 sales", value: "[see report]", period: "Q3", as_of: addDays(-4), source_label: "Q3 sales report", source_link: link }
     };
     state.prompts = {
       p1: { id: "p1", title: "Prep me for the Monday managers call", prompt: "Look at this week's store emails and my notes, then give me three talking points for Monday's managers call and one question to ask.", why: "You run this call every Monday.", area: "Stores", created_by: "setup" },
@@ -2013,12 +2662,14 @@ select.input { appearance: none; padding-right: 32px; background-image: linear-g
     };
     var wk = new Date();
     state.meta = {
-      config: { owner: "Jordan Reyes", first_name: "Jordan", sources: ["outlook", "teams", "meeting", "brain", "phone", "pocket"],
-        areas: ["Stores", "Fall Event", "People", "Vendors"], hq_version: "2026-10-01-v1", voice_profile_path: "" },
-      sweep: { last_sweep_at: lastRun.at, last_variant: lastRun.variant, sweep_count: 23, hq_version: "2026-10-01-v1",
+      config: { owner: "Jordan Reyes", first_name: "Jordan", owner_email: "jordan.reyes@example.com", sources: ["outlook", "teams", "meeting", "brain", "phone", "pocket"],
+        areas: ["Stores", "Fall Event", "People", "Vendors"], hq_version: "2026-10-06-v1", voice_profile_path: "notes/my-email-voice.md",
+        sections: ["todos", "drafts", "meetings", "priority_email", "metrics"], triage_trigger_id: "trig_sample_midday", drafter_trigger_id: "trig_sample_drafter" },
+      sweep: { last_sweep_at: lastRun.at, last_variant: lastRun.variant, sweep_count: 23, hq_version: "2026-10-06-v1",
         sweep_started_at: /sweep/.test(location.hash) ? new Date(Date.now() - 60000).toISOString() : null },
-      brief: { focus: "Three things need you today: Sam's Q3 letter, Priya's catering headcount, and one message that needs a careful look." },
-      brain: { updated: todayIso() },
+      brief: { focus: "Three things need you today: Sam's Q3 letter, Priya's catering headcount, and one message that needs a careful look.",
+        items: [{ card_id: "t1", label: "Sam's Q3 letter" }, { card_id: "t2", label: "Priya's catering headcount" }, { card_id: "t4", label: "one message that needs a careful look" }] },
+      slots: { offered: [{ draft_id: "d2", start: at(8, 10, 0), end: at(8, 10, 30) }, { draft_id: "d2", start: at(9, 14, 0), end: at(9, 14, 30) }] },
       weekly: { week: wk.getFullYear() + "-W" + isoWeek(wk), week_file_path: "notes/hq/weeks/" + wk.getFullYear() + "-W" + pad(isoWeek(wk)) + ".md", closed: 14, added: 11, drafts_made: 6, drafts_sent: 3,
         summary_text: "A steady week, and the Fall Event is the open thread. You closed October store hours and both vendor reviews. Venue layout and catering headcount land early next week, and Dana still owes the holiday staffing numbers." }
     };
@@ -2026,13 +2677,14 @@ select.input { appearance: none; padding-right: 32px; background-image: linear-g
     document.getElementById("sampleChip").hidden = false;
     if (!filled(OWNER_TOKEN)) document.title = "Jordan's HQ";
     applyView();
-    // Preview options for demo links and screenshots: #demo&layout=columns&style=briefing&theme=dark&tab=drafts (&empty for a first-day board)
+    // Preview options for demo links and screenshots: #demo&layout=columns&style=briefing&theme=dark&tab=drafts (&empty for a first-day board, &plain for a board with no sections)
     var q = new URLSearchParams(location.hash.replace(/^#demo&?/, "")), root = document.documentElement;
     if (q.get("layout")) root.setAttribute("data-layout", q.get("layout"));
     if (q.get("style")) root.setAttribute("data-style", q.get("style"));
     if (q.get("theme")) root.setAttribute("data-theme", q.get("theme"));
     if (q.get("tab")) ui.tab = q.get("tab");
-    if (q.has("empty")) { state.todos = {}; state.drafts = {}; state.meta.brief = {}; }
+    if (q.has("empty")) { state.todos = {}; state.drafts = {}; state.meetings = {}; state.metrics = {}; state.meta.brief = {}; }
+    if (q.has("plain")) { delete state.meta.config.sections; } // a board from before sections existed
     renderAll();
   }
 
@@ -2043,7 +2695,9 @@ select.input { appearance: none; padding-right: 32px; background-image: linear-g
   function subscribe() {
     var firstTodos = true;
     var handleErr = function (what) { return function (err) { console.error(what + " snapshot error", err); }; };
-    ["todos", "drafts", "prompts"].forEach(function (col) {
+    // meetings and metrics exist only on boards whose sections ask for them; an empty
+    // collection costs nothing and renders nothing.
+    ["todos", "drafts", "prompts", "meetings", "metrics"].forEach(function (col) {
       db.collection(col).onSnapshot(function (snap) {
         var next = {};
         snap.docs.forEach(function (d) { next[d.id] = Object.assign({ id: d.id }, d.data()); });
@@ -2052,7 +2706,7 @@ select.input { appearance: none; padding-right: 32px; background-image: linear-g
         scheduleRender();
       }, handleErr(col));
     });
-    ["config", "sweep", "brief", "brain", "weekly"].forEach(function (key) {
+    ["config", "sweep", "brief", "weekly", "slots"].forEach(function (key) {
       db.doc("meta/" + key).onSnapshot(function (snap) {
         state.meta[key] = snap.exists ? snap.data() : null;
         if (key === "config") applyView();
@@ -2078,6 +2732,12 @@ select.input { appearance: none; padding-right: 32px; background-image: linear-g
   boot();
   // Greeting and "due today" depend on the clock; refresh them when the tab comes back.
   document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") scheduleRender(); });
+  // Once a minute: the "Updated" time, the Triage and Drafting ceilings, and meetings that ended.
+  // Header and toolbar only, unless a meeting list is on screen.
+  setInterval(function () {
+    if (document.visibilityState !== "visible") return;
+    if (ui.tab === "today" && sectionOn("meetings")) scheduleRender(); else { checkDrafting(); renderHeader(); renderTabs(); mountOrbs(); }
+  }, 60000);
 })();
 </script>
 </body>

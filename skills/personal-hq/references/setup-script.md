@@ -2,7 +2,9 @@
 
 The exact words for a live setup. Read this before a session (read it before every live session). Say these lines, or close to them, in this order. Adapt names and details; keep the length.
 
-The person answers or clicks at most seven times. Everything between those moments is Claude's work, narrated in one short line each ("Saving your settings to your notes now."). Never show them a prompt, a code block, a URL other than their board, or a word like trigger, cron, connector ID, or database.
+The person answers or clicks at most seven times. Everything between those moments is Claude's work, narrated in one short line each ("Saving your settings to your notes now."). Never show them a prompt, a code block, a URL other than their board, or a word like trigger, cron, connector ID, database, or helper.
+
+The board goes live right after Moment 4 and fills in the background while they answer Moments 5 to 7. Keep each line short; the waiting is covered by their own answers.
 
 ## Before the first moment
 
@@ -38,6 +40,7 @@ Let them talk. Do not interrupt with follow-ups. One early user answered with th
 - **Phone calls or recorders** ("most of my calls are on a landline" means teach the phone-call line at the close).
 - **Times** ("I'm in by 6:30" moves the morning run earlier).
 - **"Start fresh"** (sets the first look-back to 0 days instead of 14).
+- **Meetings** ("meetings I can't miss", "don't let me double-book"), **urgent email** ("emails that need me"), and **numbers** ("how the business is doing", "metrics"). Each turns on a board section. Numbers come only from reports they already get in email or Teams.
 
 If their areas are clients or accounts, find each client's contacts and email domains (`personal_search`, recent mail) and add the client line under "What counts as mine" (`brain-files.md`). Without it, asks to "you guys" from a client get missed and the first board feels sparse.
 
@@ -45,7 +48,9 @@ If their areas are clients or accounts, find each client's contacts and email do
 
 One question, free text allowed:
 
-> Here's what I'd organize your HQ around: **Operations, Owner relations, and Risk and compliance**. The people you answer to: **Dana**. Does that look right, or would you change anything?
+> Here's what I'd organize your HQ around: **Operations, Owner relations, and Risk and compliance**. The people you answer to: **Dana**. Up top, your **important meetings** with prep, and the numbers from your **Daily census** and **Weekly ops summary** reports. Does that look right, or would you change anything?
+
+Name only the sections they asked for. If they asked for numbers and no recurring report turned up, say instead: "I didn't find a regular report in your email yet. When one starts arriving, say 'add metrics to my HQ'." Dollar amounts never go on the board; a report with money in it shows its name and date with a link.
 
 Options: "Looks right" and "Change something". If they change something, take it in their words and do not ask again.
 
@@ -72,6 +77,14 @@ Style options:
 Then say once:
 
 > You can change any of this later. Just tell me here, or leave a comment right on the board.
+
+Publish at once, then start the first pass, saying while you work:
+
+> I'm saving your HQ as a private page in your Claude account. Only you can see it, and you can delete it any time.
+
+> Your board is live. While we finish a few quick questions, I'm reading your last two weeks in the background, one area at a time.
+
+With no background helpers, say only the first line; the reading happens after the updates are set up.
 
 ## Moment 5: the gentle privacy check
 
@@ -102,11 +115,9 @@ Skip this moment if `notes/my-email-voice.md` already exists ("Your drafts will 
 
 Options: "Use Sonnet 5.5 (recommended)" and "Keep the current model". Their tap is the go-ahead to set the model. Use the times they gave in Moment 2 if they gave any.
 
-### Publishing, said while you work
+### Setting up updates, said while you work
 
-> I'm saving your HQ as a private page in your Claude account. Only you can see it, and you can delete it any time.
-
-> Now I'm setting up the four updates. They run in the cloud, so your computer can be closed.
+> Now I'm setting up your updates. They run in the cloud, so your computer can be closed.
 
 ### The permissions walkthrough (only if a task is not already set to run on its own)
 
@@ -121,45 +132,41 @@ Otherwise, slowly, one step per line, waiting for them on each:
 > 3. Find **Permissions** and change "Manually approve" to **"Automatically approve"**.
 > 4. Click **Save**. The page should now say "Always allowed".
 >
-> Do the same for the other three: midday librarian, evening librarian, and Friday recap. Tell me when you're done.
+> Do the same for the other four: midday librarian, evening librarian, Friday recap, and drafter. Tell me when you're done.
 
 Then check each task and name any that still is not set: "The Friday recap still says Manually approve. Open it once more and switch it."
 
-## The back pass, while it runs
+## While the first pass finishes
 
-> I'm running your first update now. It reads the last two weeks, so it takes a few minutes. While it runs, three things worth knowing:
+If the reading is still going after the updates are set up, teach the board one short beat at a time, checking on it between beats:
+
+> Almost there. Three things worth knowing while it finishes:
 >
-> - **Quick add.** The + on the board adds a to-do by hand.
+> - **Draft this.** Every to-do has a Draft this button. Press it and an email in your style appears in Drafts in a minute or two.
+> - **Mark as sent.** After you send a draft, press Mark as sent. I check your Sent folder first, so nothing is marked sent that didn't go.
 > - **Comments.** Drag a box over anything on the board and tell me what to change. That's how you edit it.
-> - **Phone calls.** Just got off a call? Come back to this chat and say "I just got off a call with Marcus" and tell me what happened. I'll add what you owe.
 
-When it finishes, show what landed in three to five lines, each with why:
+With the fallback (no background helpers), open with: "I'm running your first update now. It reads the last two weeks, so it takes a few minutes." and teach the same beats.
 
-> Your board is ready. Six things landed, for example:
+If you are sharing your screen in a meeting, say before real cards show: "Your real email will show up on the board next. Want to keep sharing, or look at it after?"
+
+## The first board
+
+Show what landed in three to five lines, each with its why:
+
+> Your board is ready. Fourteen things landed and six replies are drafted, for example:
 > - **Send Dana the Q4 staffing plan**: Dana asked you by name in Monday's ops sync.
-> - **Confirm a time for the Elm Ridge walkthrough**: Sam emailed you directly. There's a reply ready in Drafts.
+> - **Confirm a time for the Elm Ridge walkthrough**: Sam emailed you directly. A reply is ready in Drafts with two times that are open on your calendar.
 >
 > If any of these isn't yours, just tell me and I'll take it off for good.
 
-If they say a card isn't theirs: delete it and offer one "Leave out" line in their words.
+If they say a card isn't theirs: delete it and offer one "Leave out" line in their words. If a card already looked done (you found the sent email or the invite), say so and offer to close it.
 
-## The drafting offer (after the back pass, before the close)
+Then the test run (skip it after the fallback, whose first update already proved the schedule works):
 
-> Your board has [N] things on it. Want me to draft emails for as many as I can now? Each one uses your writing style, your calendar for meeting times, and what your notes know about the person. Nothing gets sent. It takes about five minutes.
+> One last check: I'm running your noon update once now to make sure the scheduled ones work. It only reads today, so it's quick.
 
-Options: "Draft them" and "Not now". On yes, narrate one line ("Drafting the newest ten now."), run the pass in `drafting.md`, then show three:
-
-> Ten drafts are ready in your Drafts tab. For example:
-> - **To Sam, re: Elm Ridge walkthrough**: offers Tuesday 10am or Thursday 2pm, both open on your calendar.
-> - **To Dana, new email: the staffing plan**: you promised it in Monday's sync. Skim before sending.
->
-> Edit any draft right on the board, then copy it into Outlook. I'll learn from what you change.
-
-If a card already looked done (you found the sent email or the invite), say so and offer to close it. On "Not now": "Any time, just say 'draft my emails'."
-
-When they later say "I sent it, waiting to hear back", offer: "Want me to move it to Waiting on, so it nudges you if they go quiet?"
-
-If you are sharing your screen in a meeting, say before the back pass shows real cards: "Your real email will show up on the board next. Want to keep sharing, or look at it after?"
+When it finishes, say "Your updates work." and go to the close.
 
 ## The close (three lines plus one)
 
@@ -169,7 +176,7 @@ If you are sharing your screen in a meeting, say before the back pass shows real
 >
 > To change anything, say it here or comment on the board. Try "make the cards bigger" or "leave out vendor newsletters". Say "check my HQ" any time something looks off.
 >
-> And for phone calls, say "I just got off a call with" and the name. To clear more off your plate, say "draft my emails".
+> And for phone calls, say "I just got off a call with" and the name. To clear more off your plate, say "draft my emails". If you'd rather a draft land in your Outlook Drafts folder, just ask.
 
 Offer to pin the board: "Want me to pin your HQ to your sidebar?" Pin only on yes.
 
