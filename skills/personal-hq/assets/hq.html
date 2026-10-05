@@ -1196,6 +1196,7 @@ select.input { appearance: none; padding-right: 32px; background-image: linear-g
   function isoDay(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
   function todayIso() { return isoDay(new Date()); }
   function addDays(n) { var d = new Date(); d.setDate(d.getDate() + n); return isoDay(d); }
+  function nextWorkday() { var dow = new Date().getDay(); return addDays(dow === 5 ? 3 : dow === 6 ? 2 : 1); }
   function parseDay(iso) { if (!iso) return null; var d = new Date(String(iso).slice(0, 10) + "T00:00:00"); return isNaN(d) ? null : d; }
   function daysUntil(iso) {
     var d = parseDay(iso); if (!d) return null;
@@ -1666,7 +1667,7 @@ select.input { appearance: none; padding-right: 32px; background-image: linear-g
 
   function meetingsHtml() {
     if (!sectionOn("meetings")) return "";
-    var now = Date.now(), days = [todayIso(), addDays(1)];
+    var now = Date.now(), days = [todayIso(), nextWorkday()];
     var list = values(state.meetings).filter(function (m) {
       if (!m || !m.start || isNaN(Date.parse(m.start))) return false;
       return days.indexOf(isoDay(new Date(m.start))) >= 0 && Date.parse(m.end || m.start) >= now;
@@ -1675,7 +1676,7 @@ select.input { appearance: none; padding-right: 32px; background-image: linear-g
     var html = "", lastDay = null;
     list.forEach(function (m) {
       var day = isoDay(new Date(m.start));
-      if (day !== lastDay) { html += '<p class="eyebrow daylabel">' + (day === days[0] ? "Today" : "Tomorrow") + "</p>"; lastDay = day; }
+      if (day !== lastDay) { html += '<p class="eyebrow daylabel">' + (day === days[0] ? "Today" : day === addDays(1) ? "Tomorrow" : DAY[parseDay(day).getDay()]) + "</p>"; lastDay = day; }
       var mins = m.end ? Math.round((Date.parse(m.end) - Date.parse(m.start)) / 60000) : 0;
       var link = safeLink(m.link);
       var cards = (m.card_ids || []).map(function (id) { return state.todos[id]; }).filter(function (c) { return c && isOpen(c); });
@@ -1845,7 +1846,9 @@ select.input { appearance: none; padding-right: 32px; background-image: linear-g
     }
     var mark = ui.busy[d.id] ? '<span class="btn is-busy" aria-disabled="true" role="status">Checking Sent Items…</span>'
       : '<button class="btn" data-action="mark-sent" data-id="' + esc(d.id) + '">' + icon("check") + "Mark as sent</button>";
-    var actions = bucket === "sent" ? '<div class="letter-actions">' + copyBtn + "</div>"
+    var unverified = bucket === "sent" && d.sent_via === "outlook" && d.sent_verified === false;
+    var actions = bucket === "sent" ? '<div class="letter-actions">' + copyBtn +
+        (unverified ? '<button class="btn btn-quiet" data-action="sent-other" data-id="' + esc(d.id) + '">I sent it another way</button>' : "") + "</div>"
       : ui.reasonFor === d.id ? '<div class="reasons" role="group" aria-label="Why dismiss this draft?"><span class="eyebrow">Why dismiss?</span>' +
           DISMISS_REASONS.map(function (r) { return '<button class="btn" data-action="dismiss-reason" data-id="' + esc(d.id) + '" data-reason="' + r[0] + '">' + r[1] + "</button>"; }).join("") +
           '<button class="btn btn-quiet" data-action="dismiss-cancel">Cancel</button></div>'
@@ -1938,17 +1941,10 @@ select.input { appearance: none; padding-right: 32px; background-image: linear-g
     var ta = document.getElementById("body-" + id);
     return ta ? ta.value : null;
   }
-  function releaseSlots(draftId) {
-    var list = ((state.meta.slots || {}).offered || []).filter(Boolean);
-    var mine = list.filter(function (o) { return o.draft_id === draftId; });
-    if (!mine.length) return function () {};
-    write("meta", "slots", { offered: list.filter(function (o) { return o.draft_id !== draftId; }) });
-    return function () { write("meta", "slots", { offered: ((state.meta.slots || {}).offered || []).concat(mine) }); };
-  }
   function closeCard(cardId, resolution) {
     var c = cardId && state.todos[cardId];
     if (!c || !isOpen(c)) return function () {};
-    var prev = { column: c.column, done_date: c.done_date || null, prev_column: c.prev_column || null, resolution: c.resolution || null };
+    var prev = { column: c.column, done_date: c.done_date || null, prev_column: c.prev_column || null, resolution: c.resolution || null, flagged: !!c.flagged };
     write("todos", cardId, { column: "done", done_date: todayIso(), prev_column: c.column, resolution: resolution, flagged: false });
     return function () { write("todos", cardId, prev); };
   }
@@ -1966,8 +1962,7 @@ select.input { appearance: none; padding-right: 32px; background-image: linear-g
       write("drafts", id, patch);
       var other = fields.sent_via === "other";
       var undoCard = closeCard(d.card_id, fields.sent_verified ? "Email sent " + shortDate(fields.sent_at) : other ? "Sent another way (you confirmed)" : "Marked sent; checking Sent Items tonight");
-      var undoSlots = releaseSlots(id);
-      toast(fields.sent_verified ? "Sent · found in your Sent Items" : other ? "Marked as sent another way" : "Marked sent · checking tonight", "Undo", function () { write("drafts", id, prev); undoCard(); undoSlots(); });
+      toast(fields.sent_verified ? "Sent · found in your Sent Items" : other ? "Marked as sent another way" : "Marked sent · checking tonight", "Undo", function () { write("drafts", id, prev); undoCard(); });
     });
   }
   // The search runs with recipient, sender, and afterDateTime filters, so any hit is an email
@@ -1998,6 +1993,15 @@ select.input { appearance: none; padding-right: 32px; background-image: linear-g
       if (want && got && (got === want || got.indexOf(want) >= 0 || want.indexOf(got) >= 0) && m.sentDateTime > best) best = m.sentDateTime;
     });
     return best ? { at: best } : { other: true };
+  }
+  // The evening run reopens a card when an unverified send never shows in Sent Items. If it went
+  // from another account, this marks it trusted (never rechecked) and closes the card again.
+  function sentOtherWay(id) {
+    var d = state.drafts[id]; if (!d) return;
+    var prev = { sent_via: d.sent_via || null };
+    write("drafts", id, { sent_via: "other" });
+    var undoCard = closeCard(d.card_id, "Sent another way (you confirmed)");
+    toast("Marked as sent another way", "Undo", function () { write("drafts", id, prev); undoCard(); });
   }
   function markSent(id) {
     var d = state.drafts[id]; if (!d || ui.busy[id]) return;
@@ -2038,8 +2042,7 @@ select.input { appearance: none; padding-right: 32px; background-image: linear-g
       var patch = { status: "dismissed", dismissed_at: now };
       if (reason) patch.dismissed_reason = reason;
       write("drafts", id, patch);
-      var undoSlots = releaseSlots(id);
-      undos.push(function () { write("drafts", id, prev); undoSlots(); });
+      undos.push(function () { write("drafts", id, prev); });
     });
     ui.reasonFor = null;
     toast(ids.length === 1 ? "Draft dismissed" : ids.length + " drafts dismissed", "Undo", function () { undos.forEach(function (u) { u(); }); });
@@ -2055,7 +2058,7 @@ select.input { appearance: none; padding-right: 32px; background-image: linear-g
     var id = config().drafter_trigger_id;
     if (state.demo) { sayInstead("Sample board", phrase); return; }
     if (!id) { sayInstead("Drafting from the board isn't set up yet", phrase); return; }
-    ui.drafting[cardId] = { at: Date.now(), had: c.draft_id || "" };
+    ui.drafting[cardId] = { at: Date.now(), had: c.draft_id || "", flag: c.flag_reason || "" };
     refreshDetail(); scheduleRender();
     fireTrigger(id, "card_id=" + cardId).then(function () {
       toast("Drafting. It shows up on the Drafts tab in a few minutes");
@@ -2069,9 +2072,11 @@ select.input { appearance: none; padding-right: 32px; background-image: linear-g
     Object.keys(ui.drafting).forEach(function (cardId) {
       var job = ui.drafting[cardId], c = state.todos[cardId];
       var fresh = c && c.draft_id && c.draft_id !== job.had && state.drafts[c.draft_id];
-      if (fresh || !c || Date.now() - job.at > DRAFTING_MAX_MS) {
-        delete ui.drafting[cardId];
+      var declined = c && c.flag_reason && c.flag_reason !== job.flag && /^No draft/.test(c.flag_reason);
+      if (fresh || declined || !c || Date.now() - job.at > DRAFTING_MAX_MS) {
+        delete ui.drafting[cardId]; refreshDetail();
         if (fresh) toast("Draft ready · " + c.title, "See it", function () { gotoDraft(c.draft_id); });
+        else if (declined) toast(c.flag_reason, null, null, 9000);
       }
     });
   }
@@ -2450,6 +2455,7 @@ select.input { appearance: none; padding-right: 32px; background-image: linear-g
       case "draft-this": draftThis(id); break;
       case "dpref": setDraftPref(t.getAttribute("data-k"), t.getAttribute("data-v")); renderAll(); break;
       case "mark-sent": markSent(id); break;
+      case "sent-other": sentOtherWay(id); break;
       case "copy-open":
         // The link itself opens the thread (an <a target=_blank> survives popup rules that
         // block window.open in a framed page). Copy synchronously first, while the click

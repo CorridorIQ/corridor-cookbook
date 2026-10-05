@@ -143,7 +143,7 @@ If the reading is still going after the updates are set up, teach the board one 
 > Almost there. Three things worth knowing while it finishes:
 >
 > - **Draft this.** Every to-do has a Draft this button. Press it and an email in your style appears in Drafts in a minute or two.
-> - **Mark as sent.** After you send a draft, press Mark as sent. I check your Sent folder first, so nothing is marked sent that didn't go.
+> - **Mark as sent.** After you send a draft, press Mark as sent. I check your Sent folder first and tell you if I can't find it.
 > - **Comments.** Drag a box over anything on the board and tell me what to change. That's how you edit it.
 
 With the fallback (no background helpers), open with: "I'm running your first update now. It reads the last two weeks, so it takes a few minutes." and teach the same beats.

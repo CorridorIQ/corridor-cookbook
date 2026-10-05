@@ -61,7 +61,7 @@ A Teams ask gets a one-line "Suggested reply: ..." at the end of the card's deta
 Use Quick rules, Reply moves, Avoid-list, and Learned from edits (which overrides the rest). Match this audience's greeting, opener, and length. No profile: plain and short (120 words at most), `confidence: "medium"`, `voice_version: "none"`, and the Drafts tab shows "Say 'learn my voice' to make these sound like you."
 
 - Plain text: greeting, the message, sign-off. No signature block; Outlook adds it.
-- Replies and nudges: at or under the profile's typical length. Content drafts: up to about 300 words, never over 400.
+- Replies and nudges: at or under the profile's typical length. Content drafts: up to 400 words.
 - Reread against the Avoid-list and Learned from edits and fix every hit.
 
 ## Recipient, subject, cc
