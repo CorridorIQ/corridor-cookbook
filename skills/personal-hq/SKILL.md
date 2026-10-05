@@ -76,7 +76,7 @@ Say first: "I'm saving your HQ as a private page in your Claude account. Only yo
 
 ## First pass
 
-Right after Publish, start the helpers in the background as `references/first-pass.md` describes, say the script's one line, and go on to Moment 5. When they return, merge, write one batch, show the board, and start the test run. With no background helpers, run the fallback in the same file after Schedule.
+Right after Publish, start the helpers in the background as `references/first-pass.md` describes, say the script's one line, and go on to Moment 5. Merge the moment they return (after any moment, or between two task creations in Schedule; never after Schedule ends), write one batch, and show the board. Start the test run once Schedule is done. With no background helpers, run the fallback in the same file after Schedule.
 
 ## Schedule
 

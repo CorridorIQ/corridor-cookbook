@@ -28,7 +28,7 @@ Fill the angle brackets with real values and send each helper this:
 
 ## Merging (main chat)
 
-Check for returned helpers between moments. Never end your turn to wait; the person would have to type to wake you. When all are back, and after Moment 6 if it is still in progress:
+Check for returned helpers after every moment and between every scheduled task you create. Merge the moment all are back and Moment 6 is done: before Schedule if they are ready by then, otherwise between two task creations. Never leave the merge until Schedule is finished; creating five tasks takes minutes, and in the eval that wait made the new flow slower than the old one. Never end your turn to wait; the person would have to type to wake you. To merge:
 
 1. Drop candidates under the Leave out answer from Moment 5.
 2. Dedupe across helpers with STEP 4's cluster test: one card per ask, the most direct source kept, the others named in detail ("Also raised in Tuesday's sync.").
@@ -36,7 +36,7 @@ Check for returned helpers between moments. Never end your turn to wait; the per
 4. Draft up to 10 of the kept cards that carry a "draft", newest ask first, following `drafting.md`. Use the voice profile if Moment 6 built it (else plain, `voice_version: "none"`). Read the calendar and `meta/slots` once and allocate windows across all drafts together. Use only the helper's facts; anything else goes in [brackets] and `assumptions`.
 5. Write one ArtifactData batch: the cards (doc ids per STEP 6), the drafts, each card's `draft_id`, `meta/slots`, `meta/brief` (`focus`, `items`, `written_at`, per STEP 11), and `meta/sweep` (`last_sweep_at` now, `last_variant: "setup"`, `sweep_count: 1`, `hq_version`, `summary` in STEP 12's shape, `audit` summed across helpers, `recent` with one line).
 
-Then show the board (the script's words) and start the test run.
+Then show the board (the script's words), finish Schedule if it is still going, and start the test run.
 
 ## Test run
 
