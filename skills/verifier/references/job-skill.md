@@ -23,7 +23,7 @@ For a code change with something to run (a web app, a CLI, an API), the mechanic
 2. Listed checks are one line each in Run step 5, with the planted error in the check table.
 3. Fill in the template in the owner's words. With split ownership, list each owner with what they decide, and route each question to the owner of that area. No amounts, account numbers, or customer details: those go in proof files.
 4. Write the description in the job's own words (its command, file names, the moment it happens), never only "verify", so it doesn't collide with the verifier or another job skill.
-5. Add one trigger line where the job starts, because a description alone may not fire. In a folder: "Then run <job>-checks." at the end of the command or playbook the job runs through, or in the folder's `AGENTS.md`. In a chat app: the user pastes "Before sending <job>, run <job>-checks." into the project instructions. Name the line and where it went in the hand-off.
+5. Add one trigger line where the job starts, because a description alone may not fire, and a command that says "reply with this and nothing else" stops it outright. In a folder: "Then run <job>-checks." at the end of the command or playbook the job runs through, or in the folder's `AGENTS.md`. In a chat app: the user pastes "Before sending <job>, run <job>-checks." into the project instructions. Name the line and where it went in the hand-off.
 
 ## SKILL.md template
 

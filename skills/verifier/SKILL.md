@@ -12,7 +12,7 @@ The owner's checks are the standard. Claude finds the facts, proposes, and runs;
 
 ## Pick the path
 
-Look for a `<job>-checks` skill for this work: among the skills loaded here, in the work folder's `skills/`, or in `~/.claude/skills/` or `~/.agents/skills/`.
+Look for a `<job>-checks` skill for this work: among the skills loaded here, in the work folder's `skills/` or, from earlier versions, its `.claude/skills/`, or in `~/.claude/skills/` or `~/.agents/skills/`. One found in `.claude/skills/` moves to `skills/<job>-checks/` at its next Update.
 
 | Situation | Path |
 |---|---|
