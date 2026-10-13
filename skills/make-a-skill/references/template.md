@@ -1,6 +1,6 @@
 # SKILL.md template
 
-Copy the block below into `skills/<your-skill-name>/SKILL.md` and fill each part. Delete the bracketed guidance as you go. Keep the whole file under 120 lines; anything longer moves to `references/`.
+Copy the block below into `skills/<your-skill-name>/SKILL.md` in the work folder and fill each part. That copy is the master; install it with `install.md`. Delete the bracketed guidance as you go. Keep the whole file under 120 lines; anything longer moves to `references/`.
 
 ```
 ---

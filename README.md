@@ -23,8 +23,8 @@ Six skills that run in order, from a vague idea to a finished output that improv
 
 | Skill | What it does |
 |---|---|
-| `start` | Reads your files, then interviews you until the job fits in one paragraph: what it produces, for whom, from which sources, which source wins, and what needs your yes. Writes nothing; hands the paragraph to scaffold. |
-| `scaffold` | Builds the folder: AGENTS.md (CLAUDE.md points to it, so any AI tool reads the same rules), NOW.md, README, sources, rules, and an inbox. Sets the first run on a past period whose answers you know, and offers a practices note and the verifier. |
+| `start` | Takes your brain dump, plays it back until you agree, then reads what you pointed to (splitting big piles across helper agents) and asks only the decisions files can't answer: which source wins, what the headline word means, what needs your yes. Writes nothing; hands the paragraph to scaffold. |
+| `scaffold` | Builds the folder: AGENTS.md for the rules (plus a one-line CLAUDE.md that points Claude to it), NOW.md, README, sources, rules, and an inbox. Sets the first run on a past period whose answers you know, and offers a practices note and the verifier. |
 | `plan` | Turns the start answers into a one-page plan in `plans/`, plain English, six fields of front matter. Stops for your approval before anything runs. |
 | `run-plan` | Runs the approved plan. Independent steps go to Sonnet agents in parallel, harder ones to Opus; with no agents available, it does the steps itself. Ends by running learn. |
 | `learn` | Writes a rule only when it can name one that changes the next run, and the evidence for it. Promotes on a second sighting, and mirrors promoted rules to your brain. |
@@ -32,7 +32,7 @@ Six skills that run in order, from a vague idea to a finished output that improv
 
 The work teaches the cookbook: `learn` writes the rule, `improve` proposes the skill edit, and `make-a-skill` turns a repeated job into its own skill.
 
-`make-a-skill` helps you find which parts of your own work deserve a skill, then shapes that skill around your workflow and tests it on the way you would actually ask for it.
+`make-a-skill` helps you find which parts of your own work deserve a skill, then shapes that skill around your workflow, installs it in the AI tool you use, and tests it on the way you would actually ask for it. The master copy stays in your folder.
 
 ## Also in the box
 

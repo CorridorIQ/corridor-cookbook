@@ -1,89 +1,78 @@
 # Checks
 
-Read before proposing a plan (setup step 3) and when building a job skill's scripts.
+Read before proposing a plan and when building a job skill's scripts.
 
-## The claims every output makes
+## The seven claims
 
-Any output, a workbook, an email, a code change, a list, makes several claims at once. Evidence for one does not cover the others. These seven are the hidden checklist the interview probes against.
+Every output makes seven claims at once, and evidence for one does not cover the others. This is the hidden checklist the interview probes against.
 
-| Claim | In plain words | Spreadsheet | Email or document | Code change | List from a voice note or email |
-|---|---|---|---|---|---|
-| Real | It is true, it happened, it is not counted twice | Each row vouched to its source; duplicate scan | Every fact traces to a source | It does what its description says, shown by running it | Each item traces to something said |
-| Nothing missing | Everything that should be here is | Row count; trace the source forward | Every ask, attachment, and person who should be copied | Every caller and edge case it touches is tested | Every ask in the note became an item |
-| Right amount | The value, date, or name is right | Tie-out; recalculation; control total | Numbers, dates, and names match their sources | Output matches a known answer | Property, owner, and date read back |
-| Current | The latest version; the right period | As-of gate; cutoff near the period end | Latest thread and attachment | Right branch, environment, and versions | Nothing already done or superseded |
-| Right place | Right account, recipient, or environment; facts kept apart from opinions | Classification by the definitions | Right recipients and thread; facts, opinions, decisions apart | Right module and environment | Right property or owner |
-| Ours to use | Ours to count, or to share with this reader | Consignment or customer goods left out | Nothing confidential to this reader | No secrets or customer data in code or logs | Codes and card numbers kept off |
-| Labeled right | The reader takes it the way it is meant | Signs, units, column labels | The ask is clear to the reader | Names, messages, and docs match the behavior | Item text short and clear |
+| Claim | Spreadsheet | Email or document | Code change | List from a voice note or email |
+|---|---|---|---|---|
+| Real: true, not counted twice | Each row vouched to its source; duplicate scan | Every fact traces to a source | Does what its description says, shown by running it | Each item traces to something said |
+| Nothing missing | Row count; trace the source forward | Every ask, attachment, and person who should be copied | Every caller and edge case it touches is tested | Every ask became an item |
+| Right amount: value, date, name | Tie-out; recalculation; control total | Numbers, dates, names match sources | Output matches a known answer | Property, owner, date read back |
+| Current: latest version, right period | As-of gate; cutoff near period end | Latest thread and attachment | Right branch, environment, versions | Nothing done or superseded |
+| Right place, facts apart from opinions | Classification by the definitions | Right recipients and thread; facts, opinions, decisions apart | Right module and environment | Right property or owner |
+| Ours to use | Consignment or customer goods left out | Nothing confidential to this reader | No secrets or customer data in code or logs | Codes and card numbers kept off |
+| Labeled right: read as meant | Signs, units, column labels | The ask is clear | Names, messages, docs match behavior | Item text short and clear |
 
 ## Kinds of check
 
-**Gates** stop the run when they fail, because every later check would be built on a bad base. Each gate names the checks it blocks, so a run with one bad input still reports everything that input doesn't touch.
+**Gates** stop the run when they fail, since every later check would rest on a bad base. Each names the checks it blocks, so one bad input still lets the rest report, and says what to tell whom.
 
-- Inputs complete: 12 of 12 store files, or the run stops and names the missing ones.
+- Inputs complete: 12 of 12 store files, or stop and name the missing ones.
 - Same as-of: every source pulled as of the same date.
-- Report integrity: the export's filters and parameters, its row count, and its printed total against the system screen. A tie-out to a truncated export passes and means nothing.
+- Report integrity: the export's filters and parameters, row count, and printed total against the system screen. A tie-out to a truncated export passes and means nothing.
 - Definitions hold: every field and code is covered by the saved definitions.
 - Run read-back: period, entity, files, and tolerances confirmed in one line.
 
 **Mechanical checks** run on every row a machine can reach.
 
-- Vouch (output to source) finds things that should not be there.
-- Trace (source to output) finds things that are missing. Any output that adds up rows gets one, because omissions are what people and models miss most.
-- Row count: rows in, rows used, rows excluded with the reason.
+- Vouch (output to source) finds what should not be there.
+- Trace (source to output) finds what is missing. Every output that adds up rows gets one.
+- Row count: rows in, used, excluded with the reason.
 - Control total: the parts sum to a total stated independently.
 - Reconciliation: two systems that should agree, every difference listed.
 - Roll-forward: opening plus activity equals closing.
 - Recalculation: the arithmetic redone in code or a formula.
-- Re-extraction: a document's values read a second time, without sight of the first read, and compared.
+- Re-extraction: a document's values read again, without sight of the first read, and compared.
 - Relation: something that holds whatever the answer is. Months sum to the quarter; removing one store drops the total by exactly that store.
 - Cutoff: items near the period end land in the right period.
-- Classification: each item sits in the bucket the definitions put it in.
-- Pointer check: every cited location holds the stated value.
-- Spreadsheet soundness, for workbooks: typed numbers sitting where formulas belong, constants buried inside formulas, and a formula that differs from its neighbors in a row or column.
+- Classification: each item sits in the bucket the definitions give it.
+- Pointer check, every row, after the others: re-open each cited location and confirm the stated value.
+- Spreadsheet soundness: typed numbers where formulas belong, constants inside formulas, a formula unlike its neighbors.
 
-**Analytical checks** ask whether the result makes sense. For prior-period and plan-versus-actual comparisons, write the expected value or range before looking, and compare per store, month, or job, not only in total, because offsetting errors hide in totals. A difference over the threshold reports as Failed, with both sides, until someone explains it with a document or accepts it (Failed, accepted by <name> on <date>: <reason>). There is no fifth result such as "flagged". "It is a data error" is always one of the explanations offered.
+**Analytical checks** ask whether the result makes sense. For prior-period and plan-versus-actual comparisons, write the expected value or range before looking, and compare per store, month, or job, not only in total, because offsetting errors hide in totals. A difference over the threshold is Failed, with both sides, until someone explains it with a document or accepts it.
 
-**Selection** decides what gets a person's eyes. Machines take 100% of what they can reach. People get key items (the largest, the unusual, and anything with a history of error from the interview) plus a few at random, picked by Claude with the method and item IDs recorded. Results on key items say nothing about the rest.
+**Selection** decides what gets a person's eyes. Machines take 100% of what they reach. People get key items (the largest, the unusual, anything with a history of error) plus a few at random, picked by Claude with the method and item IDs recorded. Key-item results say nothing about the rest.
 
-**Human checks** name a role and a moment: "controller, before entries post". They name the items and the threshold. Claude prepares the exceptions list, and the person types the value they saw, because a tick answered from memory is not a check.
+**Human checks** name a role and a moment ("controller, before entries post"), the items, and the threshold. Claude prepares the exceptions list; the person reads the source with none of our values beside it and types what they saw. A tick from memory is not a check.
 
 ## Writing a check
 
-Each row of the plan names:
+Each plan row names:
 
-- **Covers:** which of the claims.
-- **Compares:** both sides, where each lives, the direction, and why the two sides are independent. "Each receiving-log line (source) traced to an accrual line (output); the receiving log is kept by the warehouse, not built from the accruals."
-- **Tolerance:** exact by default; the owner loosens it only on purpose, when correcting the plan. Line tolerances must add up to less than the tolerance for the whole output, and each proof totals the differences that passed within tolerance.
-- **Catches:** the specific error it would expose, and what it would miss. "Catches a misread digit; misses a sale filed under the wrong store."
+- **Covers:** which claims.
+- **Compares:** both sides, where each lives, the direction, and why they are independent. "Each receiving-log line (source) traced to an accrual line (output); the warehouse keeps the log, not built from the accruals."
+- **Tolerance:** exact by default; only the owner loosens it, on purpose, when correcting the plan. Line tolerances add up to less than the tolerance for the whole.
+- **Catches:** the error it exposes and what it misses. "Catches a misread digit; misses a sale filed under the wrong store."
 - **Planted error:** the realistic error that proves it can fail.
-- **Who, when, and what it needs:** automatic, or a named role at a named moment; and what the check needs to run (code, a browser, a connector, a file), confirmed to exist where the job runs. A check whose needs aren't there is redesigned (a script in place of a browser) or given to a person, never left to report Not run every time.
+- **Who, when, needs:** automatic, or a named role at a named moment; what it needs to run (code, a browser, a connector, a file), confirmed to exist where the job runs. If it isn't there, redesign the check (a script in place of a browser) or give it to a person, rather than report Not run every time.
 
-A check whose catch nobody can name is dropped. A check with no independent second side becomes a human check, or goes under Not checked.
+A check whose catch nobody can name is dropped.
 
-## Planted errors: showing a check works
+## Planted errors
 
-A check that has never been seen failing proves nothing. Planted errors exist to earn the owner's trust in the checks, so they are always announced, always on a copy marked as a test, and never in live work.
-
-On a proof run:
-
-1. Tell the owner what you will break and why: "I'm going to change one number on a test copy to show you the check catches it."
-2. On the copy, plant one error per check, chosen from the library below or from the owner's past misses. Re-read the planted cell or line to confirm the change landed.
-3. Run the checks on the copy.
-4. Show one catch in full, the one closest to the owner's past misses: what was changed, the check, both sides, Failed. Summarize the rest in one line: "All 8 checks caught their test error." The full list goes in the proof file.
-5. Discard the copy.
-
-A check that passes the broken copy is rewritten or cut before the plan is saved. In a job skill, each planted error is a test in `scripts/test_planted.py`, so the proof re-runs after every Update.
+A check never seen failing proves nothing. Planted errors are always announced ("I'm going to change one number on a test copy to show you the check catches it"), always on a copy marked as a test, never in live work. One per check, from this library or the owner's past misses; re-read the planted cell or line to confirm it landed, run the checks on the copy, then discard it. A check that passes its broken copy is rewritten or cut before the plan is saved.
 
 | Work | Errors to plant |
 |---|---|
 | Tables of numbers | Drop a row; duplicate a row; flip a sign; one value times 1,000; move an item across the period end; post to the wrong account or store; swap in the prior day's extract; filter out one store |
-| Lists from email, calls, or voice | Drop one ask from the source; add an item with no source; change a due date or owner; file under the wrong property |
-| Emails, documents, recaps | Attach an older version; change a number so it no longer matches its source; drop an ask or a deadline; add a recipient who shouldn't be there; add a sentence nobody said; turn an opinion into a fact |
-| Code changes | Flip a condition; delete a line; an off-by-one; point at the wrong environment. A test or a check must fail on each |
-| Quotes, intakes, tickets | A price not on the price list; a missing condition note; a promised date the bench cannot meet; a ticket closed with no confirmation from the person |
+| Lists from email, calls, or voice | Drop one ask; add an item with no source; change a due date or owner; file under the wrong property |
+| Emails, documents, recaps | Attach an older version; change a number off its source; drop an ask or deadline; add a recipient who shouldn't be there; add a sentence nobody said; turn an opinion into a fact |
+| Code changes, as a small change to a copy | Flip a condition; delete a line; an off-by-one; point at the wrong environment. At least one test or check must fail on each |
+| Quotes, intakes, tickets | A price not on the price list; a missing condition note; a date the bench cannot meet; a ticket closed with no confirmation from the person |
 
 ## Order
 
-Gates, then mechanical checks, then analytical checks, then human checks.
-A failed gate stops everything that depends on it. A failed mechanical check makes analytical comparisons on the same numbers meaningless until it is resolved.
+Gates, then mechanical, then analytical, then human checks. A failed gate stops everything that depends on it. A failed mechanical check makes analytical comparisons on the same numbers meaningless until resolved.

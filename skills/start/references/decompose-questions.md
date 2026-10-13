@@ -24,7 +24,7 @@ From a Corridor Context shared-skills session. Ask them in order, two to four pe
 ## How to run the session
 
 1. Ask one round at a time. Wait for the answers before moving on.
-2. When the user mentions a file, ask them to add it to the project so it can be read.
+2. When the user mentions a file, ask them to add it to the project so it can be read. Skip any question the files already answered.
 3. When answers conflict, point it out and ask which one is right.
 4. Keep a running outline of the workflow as you go, and show the one-paragraph summary firming up.
 

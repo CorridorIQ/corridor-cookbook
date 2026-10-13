@@ -27,6 +27,11 @@ When a source is missing or two disagree past the rule, write UNSURE, name the g
 
 {{From start: the headline word and what counts, for example "revenue" always as contracted, billed, or collected.}}
 
+## Skills
+
+{{One line per skill this folder owns: name, what it does, where it is installed. Write "none yet" until make-a-skill adds one.}}
+The master copy of each is `skills/<name>/SKILL.md` in this folder. After editing it, install it again; in a new tool, install it into that tool's personal skills first.
+
 ## Agents
 
 Delegate crisp, independent work to the bundled agents; in a tool without agents, do the steps yourself.

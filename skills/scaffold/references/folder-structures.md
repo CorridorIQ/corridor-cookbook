@@ -7,7 +7,7 @@ Shape the folder like a repository, so long-running work can be planned, verifie
 ```
 project/
   AGENTS.md        # what needs the user's yes, which source wins, how a run works. Read first.
-  CLAUDE.md        # one line: @AGENTS.md, so every AI tool reads the same rules
+  CLAUDE.md        # one line, @AGENTS.md (about ten tokens), for Claude versions and sessions that read only CLAUDE.md
   NOW.md           # where the work stands and the one next action
   README.md        # what this folder is, where things live, how to make it better
   sources.md       # every source, plus a data dictionary for each table-shaped one
@@ -24,7 +24,8 @@ project/
 Add these only when the work needs them:
 
 - `versions/` when the work is a model or a document that iterates version over version. Each save lands here, so a good run can be recovered when a later one breaks.
-- `.claude/skills/` and `.claude/agents/` when a step has repeated and earns its own skill. Add a skill after the second repeat.
+- `skills/<folder>-<job>/SKILL.md` when a step has repeated twice and earns its own skill. The folder copy is the master: versioned, and it travels with the folder to a teammate. make-a-skill writes it and installs it into the AI tool in use, and `AGENTS.md` lists each skill and where it is installed.
+- `.claude/agents/` only when a Claude Code user needs an agent the cookbook does not ship. It is Claude Code's format; in other tools, the main session does those steps itself.
 - `index.md` when the README table no longer fits one screen. The indexer agent writes it.
 
 Work flows `inbox/ -> inputs/<period>/ -> plan -> run-plan -> outputs/<period>/`.
