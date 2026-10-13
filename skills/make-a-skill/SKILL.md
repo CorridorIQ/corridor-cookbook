@@ -11,7 +11,7 @@ The steps run in order. Read `references/rules.md` before writing, and build fro
 
 ## 1. Find the work worth a skill
 
-Ask three questions, one at a time:
+Ask the three questions in one round, each with your best guess from what you have seen them do:
 
 - What do you do most weeks that follows the same shape every time?
 - Where does Claude fall short until you correct it with your own rules?
@@ -34,14 +34,18 @@ Done when you can say the trigger, the inputs, the output shape, and the one hum
 
 ## 3. Write the skill
 
-Build from `references/template.md`, following the 12 rules in `references/rules.md`. Keep the main file short and push detail into `references/`. Name the folder for the job. End it with one worked example in the real output format, the way `examples/monthly-budget-close/SKILL.example.md` does. That file is named `SKILL.example.md` so it reads as a reference and never loads as a skill; a real skill's main file is `SKILL.md`.
+Build from `references/template.md`, following the 12 rules in `references/rules.md`. Keep the main file short and push detail into `references/`. Write it into the work folder at `skills/<name>/SKILL.md`, and name it for the folder and the job, `<folder>-<job>` (for example `acme-budget-close`), because installed skills from every folder share one list. End it with one worked example in the real output format, the way `examples/monthly-budget-close/SKILL.example.md` does. That file is named `SKILL.example.md` so it reads as a reference and never loads as a skill; a real skill's main file is `SKILL.md`.
 
-## 4. Test it, read the transcript
+## 4. Install it
 
-Run the new skill on two prompts phrased the way the user would really say them, not the way the description reads. Read the whole transcript, not just the output. Watch where the run guessed, skipped the human-judgment step, or wandered off the format. Fix the skill at the line that let it wander. One good correction here beats three more rules.
+Install the folder copy into the tool you are running in, following `references/install.md`. Done when the skill shows in that tool's skill list and in the folder's `AGENTS.md`.
 
-## 5. Point to skill-creator for evals
+## 5. Test it, read the transcript
+
+Run the new skill on two prompts phrased the way the user would really say them, not the way the description reads. Read the whole transcript, not just the output. Watch where the run guessed, skipped the human-judgment step, or wandered off the format. Fix the folder copy at the line that let it wander, then install it again. One good correction here beats three more rules.
+
+## 6. Point to skill-creator for evals
 
 If Anthropic's `skill-creator` is installed, tell the user it runs evals and benchmarks on a skill once the skill exists, and hand off there for that. This skill shapes a skill around one person's workflow. skill-creator measures it. Leave that job to it.
 
-Done when the skill runs both test prompts cleanly, the human-judgment step stayed with the human, and the user could hand the folder to a teammate who would get the same result.
+Done when the skill is installed, runs both test prompts cleanly, the human-judgment step stayed with the human, and the user could hand the folder to a teammate who would get the same result.

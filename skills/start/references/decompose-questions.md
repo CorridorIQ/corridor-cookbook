@@ -16,15 +16,15 @@ From a Corridor Context shared-skills session. Ask them in order, two to four pe
    my judgment? Mark the judgment steps; those stay human.
 6. What good looks like. What checks prove a run is correct? What totals
    must tie out, and what prior finished output do we compare against?
-7. The boundaries. What should never happen? Which files or fields must
-   never be touched? What does a human have to sign off on?
+7. The boundaries. Which steps stay with you? Which files or fields does the
+   agent read but leave as they are? What needs your sign-off before it happens?
 8. The traps. Are there two things with confusingly similar names? Do
    different people do the same step two different ways?
 
 ## How to run the session
 
 1. Ask one round at a time. Wait for the answers before moving on.
-2. When the user mentions a file, ask them to add it to the project so it can be read.
+2. When the user mentions a file, ask them to add it to the project so it can be read. Skip any question the files already answered.
 3. When answers conflict, point it out and ask which one is right.
 4. Keep a running outline of the workflow as you go, and show the one-paragraph summary firming up.
 

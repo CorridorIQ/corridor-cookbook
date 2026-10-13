@@ -2,7 +2,7 @@
 
 Each rule states what to do and the one reason it matters. Sources in brackets.
 
-1. **Write the description as a trigger condition, and make it a little pushy.** Claude scans descriptions to decide what fires. A summary sits there and never triggers; a pushy condition catches the request.
+1. **Write the description as a trigger condition, and lead with the job, then the words the user says for each distinct case.** Claude scans descriptions to decide what fires. A summary sits there and never triggers; a pushy condition catches the request.
 2. **Keep the main file short. Push everything else into `references/`, `examples/`, or `assets/`.** The main file loads every run. Detail read only when a step needs it keeps attention on the work.
 3. **Explain the why behind each instruction.** A rule with its reason holds up on the case you did not foresee; a stack of capitalized musts breaks the moment the case is not spelled out.
 4. **State the behavior you want, not the one to avoid.** Naming the wrong behavior puts it in front of Claude and makes it more likely, not less.

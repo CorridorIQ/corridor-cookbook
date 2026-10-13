@@ -1,44 +1,37 @@
 ---
 name: start
-description: Use at the start of any new piece of repeatable work, when the user says "help me start", "I want to set up", "new project", or brings a vague idea and a pile of files. Grills the shape of the work before a single folder is made. Fire it before anything gets built.
+description: Get the shape of a piece of recurring knowledge work before anything is built. Use when the user says "help me start", "I want to set up", "new project", or brings a vague idea and a pile of files.
 ---
 
 # start
 
-Get the shape of the work clear before anything is built. Chat gives you answers; a working environment gives you a colleague, and a colleague has to know the job. This skill does the knowing. It writes nothing. When the job fits in one paragraph the user agrees with, it hands that paragraph to scaffold.
+Interview the user until the **job** fits in one paragraph they confirm: what this work produces, for whom, how often, from which sources, and where their judgment stays. Facts come from discovery and decisions from the user, so ask them only what no file can answer.
 
-## How to run it
+## 1. Brain dump
 
-Interview first. Do no work until the shape is clear. Ask in rounds of two to four questions. For each question, offer two or three concrete options and say which one you would pick and why, so the user reacts to a draft instead of a blank page. Keep a running one-paragraph summary of the job and show it as it firms up.
+If their first message already explains the work, use it. Otherwise ask for a brain dump: what the work is, who it is for, what makes it painful, and where the material lives (files, transcripts, emails, connected apps).
 
-### Round one: direction
+## 2. Shared understanding
 
-Two or three questions to place the work before the detail:
+Reflect it back in their words, in two or three sentences, and state the deliverable as one sentence, your guess: the artifact, who reads it, how often. Ask only the gaps that block discovery, each with your guess.
 
-- What is this for, and who reads the result?
-- One-off, or something that repeats on a cadence?
-- Roughly, what does a finished run produce?
+## 3. Discovery
 
-### Then: decompose the workflow
+Read what they pointed to; how to split the reading is your call, not theirs. A few files: open them. A big set: list names, sizes, and dates, then send parallel `researcher` agents, one slice each (by folder, source, or period), each with one question and told to quote the rows it relies on. Read connected apps such as email yourself; the agents reach files and the web only. Without agents, read names, sizes, headers, and sample rows yourself.
 
-Walk the eight Decompose My Workflow questions in `references/decompose-questions.md`, in order, two to four per round. They cover the target and the biggest time sink, the files, the steps, the sources, judgment versus mechanical, what good looks like, the boundaries, and the traps. The verbatim questions live in the reference. Read it and ask from it.
+## 4. The hard parts
 
-Two habits carry the interview:
+Open with the one tension discovery found that makes this job hard (two sources that disagree, a word that could mean two things, a claim nobody checked), in two or three sentences; other findings wait for the question they set up. Then ask a round of four to six numbered questions. Each number holds one question mark and your pick, so the user can answer in a word. A question that depends on another answer waits for the next round. End each round, once, with how to reply ("tell me the numbers you'd change; the rest stand") and that nothing gets built until they confirm the paragraph.
 
-- When the user names a file, ask them to add it to the project so the next skill can read it.
-- When answers conflict, point it out and ask which one is right.
+Lead round one with **which source wins** when two disagree: two or three lettered options, your pick, and the clash from their files that makes it matter. Also in round one, ask **what they do after reading it**, in their words; that is the decision the output drives. Across the rounds, also cover:
 
-The point is the user shaping a workspace for their own work, not a generic one. Push hardest on the parts specific to them: the checks that prove a run is right, the lines an agent is never allowed to cross, and the two things with confusingly similar names. Those are what a generic setup never captures, and what make the folder yours.
+- **The headline word** ("revenue", "done", "needs attention"): what counts, shown on their own rows, with a default threshold they can change.
+- **What stays with them**, as who does what: "I draft, you send. I work on a copy; your files stay as they are. It stays private for now." Write boundaries this way every time, as "you send" rather than "I never send".
+- **What a correct run looks like,** and how they check it today.
+- **A finished period they already know,** to test the first run against.
 
-## Done
+Start from the inputs they already have; better files can come later. Keep each message near 300 words, in their words. Skip restating their answers; the paragraph carries them. Keep skill and file-format names out of what they read. Anything they cannot answer goes on an open list with your default. If the shape stays foggy, `references/decompose-questions.md` has eight deeper questions.
 
-Done when you can state the job in one paragraph and the user agrees with it. The paragraph names the work, its cadence, the inputs, what a good output looks like, and where judgment stays human.
+## 5. Close
 
-Hand that paragraph to scaffold. Say so in a line, for example: "I have the shape. Running scaffold to build the folder." Write nothing yourself. Scaffold makes the files.
-
-## Common mistakes
-
-- Building before the shape is clear. The whole value is the grill.
-- Blank questions. Every question carries options and your pick.
-- One question at a time. Rounds of two to four keep the user in flow.
-- A generic result. If nothing you asked was specific to this user's work, go back and dig.
+Write the job in one paragraph and ask "Is that right?" Done when the user says yes. End on the confirmed paragraph and the open list; building is the next step they choose. Then hand the paragraph to scaffold and write no files yourself.

@@ -25,7 +25,7 @@ A candidate moves from Observed once to Learnings when one of two things happens
 1. You see the same rule a second time. Two sightings means a pattern, not an accident.
 2. The user states it as a rule. A person saying "always do X" outweighs your own observations, so it goes straight to Learnings on the first hearing.
 
-Every entry in either section carries the date and a timestamp. That is how you tell a first sighting from a second one later.
+
 
 ## What counts, and what does not
 
