@@ -11,7 +11,7 @@ Every rule in that file comes from a line the user actually wrote. You are descr
 
 1. **Read who they are.** Call `cold_start_context`, then `personal_list` and `personal_search` for their main people and projects. Their voice moves by audience, so you need to know which emails go to a client, a manager, or a teammate. If no personal brain connector is present, say so in one line and skip to gathering samples from mail alone.
 
-2. **Gather samples.** From the connected mail account, pull 10 to 15 recent messages the user wrote themselves, sent items only, spread across audiences. Drop forwards, one-line scheduling replies, and pasted-in text. With no mail connected, ask them to paste 5 emails they are happy with and say who each went to. Ask for real emails, not a description of their style; five samples beat any description.
+2. **Gather samples.** From the connected mail account, pull 10 to 15 recent messages the user wrote themselves, sent items only, spread across audiences. Drop forwards, one-line scheduling replies, and pasted-in text. With no mail connected, ask them to paste 5 emails they are happy with and say who each went to. 
 
 3. **Derive the profile.** Read every sample before writing a single rule. Work through the checklist in `references/voice-profile.md`, and for each item state what they do and quote one real line as proof. A rule you cannot back with a quote is a guess, so leave it out.
 

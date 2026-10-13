@@ -29,20 +29,10 @@ description: <One trigger condition, a little pushy. When should this fire, and 
 
 <One finished output in the real format, or a pointer to examples/<job>/. Show the shape, do not describe it.>
 
-## Common mistakes
+## Known traps and their fixes
 
 - <A real way this job goes wrong, and the fix.>
 ```
-
-## The sections a business skill needs
-
-- **Front matter.** `name` and `description` only. The description is the trigger, written as a condition.
-- **Opening line.** What the job is and when it runs, in the first two sentences.
-- **Steps.** The ordered workflow. Each step ends on a check the agent can see.
-- **Judgment that stays human.** The calls the skill flags for the user rather than making itself.
-- **Checks before done.** How the output is verified before it ships.
-- **Worked example.** One finished output in the real format, or a pointer to `examples/`.
-- **Common mistakes.** The traps, as a plain list, last so they are the last thing read.
 
 ## Where the folders go
 

@@ -19,22 +19,17 @@ Read the steps. Some depend on each other and run in order. Independent ones run
 - **indexer** to catalog what the folder now holds.
 - **designer** for visual work: mockups, page layouts, diagrams.
 
-One level of agents only. A dispatched agent cannot dispatch its own, because Cowork child tasks cannot spawn children. Keep the fan-out small: one to three agents, don't over-delegate. Past three, slow down and check with the user.
+One level of agents only. A dispatched agent cannot dispatch its own, because Cowork child tasks cannot spawn children. Keep the fan-out to one to three agents; past three, check with the user.
 
-## Route each step to the right model
-
-Match the intelligence to the step:
-
-- **Sonnet** for most work: drafting, formatting, assembling, straightforward analysis.
-- **Opus** for hard synthesis or judgment: long multi-document work, ambiguous calls, review of something that matters.
-- **The top model** only when a step truly needs it.
-
-This is guidance toward the cheaper model that still does the job, not a ban on the stronger one. The researcher, indexer, and designer agents are pinned to Sonnet, so that call is already made for delegated work.
+Delegate only work you can describe crisply. If you are unsure what a step needs, ask the user instead of delegating the confusion. If this tool or model cannot start agents, do the steps yourself, in order. Agents run on Sonnet (pinned in their files); keep the steps that need judgment across many documents for yourself.
 
 ## Land the outputs and close
 
 - Finished work goes in `outputs/` with the date in the name.
 - Change the plan's `status` to `done`.
+- If the job has a checks skill from the verifier, run it before you hand back.
 - Run **learn** so this run improves the next one.
 
-You produce the work and hand it back. Never mark anything final or send anything on the user's behalf; the user decides what ships.
+Done when every step in the plan has an output in `outputs/`, the plan's status reads `done`, the checks skill has run if one exists, and learn has run.
+
+You produce the work and hand it back. Hand the work back as a draft; the user decides what ships.

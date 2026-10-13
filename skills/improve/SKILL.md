@@ -5,14 +5,14 @@ description: Turn the workflow's promoted learnings into proposed skill edits, o
 
 # improve
 
-improve reads the learnings the workflow earned and turns them into proposed edits, one per skill. It never touches a skill itself. You write the proposal; the user makes the call. The skill is the team's judgment written down, and only the user rewrites it.
+improve reads the learnings the workflow earned and turns them into proposed edits, one per skill. You write the proposal; the user makes the call. The skill is the team's judgment written down, and only the user rewrites it.
 
 ## Steps
 
 1. Read learnings.md at the workspace root. Use the Learnings section only. Ignore Observed once; those are candidates that have not earned a change yet.
 2. Group the promoted entries by the skill or file each one touches. Several learnings often point at the same skill.
 3. For each group, write one proposal: the change to make, the reason it earns its place, and the entries as evidence with their dates.
-4. Append every proposal to improvements.md at the workspace root, each one dated. Create the file if it is missing. Do not edit any skill.
+4. Append every proposal to improvements.md at the workspace root, each one dated. Create the file if it is missing. The skills stay as they are until the user applies a proposal.
 
 `references/proposal-template.md` shows the shape.
 

@@ -11,7 +11,7 @@ The steps run in order. Read `references/rules.md` before writing, and build fro
 
 ## 1. Find the work worth a skill
 
-Ask three questions, one at a time:
+Ask the three questions in one round, each with your best guess from what you have seen them do:
 
 - What do you do most weeks that follows the same shape every time?
 - Where does Claude fall short until you correct it with your own rules?

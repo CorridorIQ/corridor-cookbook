@@ -1,6 +1,6 @@
 ---
 name: plan
-description: Turn the shape of a job into a one-page plan the user signs off before any work starts. Use right after start hands over the paragraph, or when the user says "plan this", "write the plan", "make a plan", or describes work big enough that starting cold would waste effort.
+description: Turn the shape of a job into a one-page plan the user signs off before any work starts. Use when scaffold has set the first run in `NOW.md`, or when the user says "plan this", "write the plan", "make a plan", or describes work big enough that starting cold would waste effort.
 ---
 
 # plan
