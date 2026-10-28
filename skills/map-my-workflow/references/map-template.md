@@ -15,6 +15,8 @@ Every <frequency>, about <total time>
 3. ? <gap: what we could not find>
 ```
 
+Unknown times: write `~?` and ask one question about the total, not one per step.
+
 ## The one-pager
 
 ```

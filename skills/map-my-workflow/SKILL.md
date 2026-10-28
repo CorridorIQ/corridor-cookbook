@@ -13,22 +13,22 @@ Read the evidence before asking. The user has already described this work in mee
 
 ## 1. Name the job
 
-If their message names a recurring job, use it. Otherwise ask one question: what do you do most weeks that eats the most time and follows the same shape? If a personal brain is connected, offer your best two guesses from it. Narrow a category to one concrete run: "the Monday portfolio update", not "reporting". Done when the job has a name of five words or fewer and a rough frequency.
+If their message names a recurring job, use it. Otherwise ask one question: what do you do most weeks that eats the most time and follows the same shape? If a personal brain is connected, offer your best two guesses from it. Narrow a category to one concrete run: "the Monday portfolio update", not "reporting". If the job repeats across clients or teams, anchor on the most recent full run and use the others as cross-checks. Done when the job has a name of five words or fewer and one anchor run with a date; frequency comes from the evidence.
 
 ## 2. Gather the evidence
 
-Build a case file before asking anything else. Check, in this order, and stop at about eight useful sources:
+Build a case file before asking anything else. Check in this order, because each source narrows the next, and stop at about eight useful sources or twelve tool calls:
 
-- **Their brain.** If Corridor Context is connected: `cold_start_context` once, then `personal_search` for the job's name and its key nouns (the report, the system, the counterpart).
-- **Meetings.** `meeting_search` for titles and attendees tied to the job; read up to three summaries with `meeting_details`. Pull lines where they described doing the work or complained about it.
-- **Email and calendar.** If a mail connector is present, find the last two or three real instances: the email that starts the job, the one that ends it. They show the true trigger, inputs, and who else touches it.
-- **Files they point to.** Open a few yourself. For a large pile, send parallel `researcher` agents, one slice each, told to quote what they rely on.
+- **Meetings first.** `meeting_search` matches titles and descriptions only, so search by the counterpart, client, or team name, not the job's name. Read up to three summaries with `meeting_details`. Note dates, attendees, and the counterpart's email domain.
+- **Their brain.** If Corridor Context is connected and the host expects it, `cold_start_context` once for orientation; it holds rules, not evidence. Then `personal_search` with `path` set to `projects`, `notes`, or `decisions` for the counterpart and the job's key nouns. Search `transcripts` only when you need their exact words.
+- **Email and calendar.** Filter by the counterpart's domain and a window around the meeting dates. Find the email that starts the job and the one that ends it; they show the true trigger, inputs, and who else touches it.
+- **Their work folder.** If they keep past deliverables, open the ones for the anchor run. File and commit times are the best evidence of how long prep takes. For a large pile, send parallel `researcher` agents if available, one slice each, told to quote what they rely on.
 
-Keep a pointer for every fact (meeting and date, email subject, file name). If nothing is connected, ask them to talk it through once by voice, start to finish, messy is fine. Done when you can draft every as-is step with a source or a marked gap.
+Keep a pointer for every fact (meeting and date, email subject, file name). If nothing is connected, ask them to talk it through once by voice, start to finish, messy is fine. When prep files and the meeting record disagree, the meeting record is the as-is; the gap between plan and reality is a finding, so show it. Done when the trigger, the finished state, and each step's tool have a source, and no more than three things remain unknown.
 
 ## 3. Show the as-is
 
-Draw it before you ask about it. Use `references/map-template.md`: numbered steps, each with the tool, rough time, and who else is involved, plus a total. Where the surface can render an artifact, draw it as a left-to-right diagram; otherwise use the text layout in the template. Quote their own words beside the step they came from ("you said on the Oct 12 call: ..."); people trust a map built from what they said.
+Draw it before you ask about it: boxes and arrows, not paragraphs. Use `references/map-template.md`: numbered steps, each with the tool, rough time, and who triggers or receives it, plus a total. Where the surface can render an artifact, draw up to six steps as a left-to-right flow; past six, use the text layout in the template. Quote their own words beside the step they came from, from a transcript, an email, or a file they wrote ("you said on the Oct 12 call: ..."); label lines from an AI meeting summary "the summary says". People trust a map built from what they said. Keep client figures and personal details out of quotes.
 
 Mark each gap with "?" and ask about the gaps only: at most three questions per round, each with your best guess so they can answer in a word. Done when they say the map is right, including the trigger and what "finished" looks like.
 
@@ -50,11 +50,11 @@ Show the as-is and the to-be side by side, with the sort on each to-be step. Don
 
 Choose one container and say why in one sentence (guide in `references/redesign.md`):
 
-- **Skill**: a repeatable how-to they trigger. Hand off to `make-a-skill`.
-- **Workspace**: multi-step work with files in and out, run from a folder with its own rules. Hand off to `start`.
+- **Skill**: a repeatable how-to they trigger. Hand off to `make-a-skill` if installed.
+- **Workspace**: multi-step work with files in and out, run from a folder with its own rules. Hand off to `start` if installed.
 - **Scheduled task**: the same work, started by a clock instead of by them.
 
-Containers combine; a scheduled task often runs a skill. Name what must tie out for them to trust it (these become checks; `verifier` builds them). Done when the container, the reason, and at least two tie-out checks are named.
+Containers combine; a scheduled task often runs a skill. If no hand-off skill is installed, the build prompt in step 7 is the hand-off. Name what must tie out for them to trust it (these become checks; `verifier` builds them if installed). Done when the container, the reason, and at least two tie-out checks are named.
 
 ## 7. Hand back the map and the first move
 
