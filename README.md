@@ -38,6 +38,7 @@ The work teaches the cookbook: `learn` writes the rule, `improve` proposes the s
 
 | Skill | What it does |
 |---|---|
+| `map-my-workflow` | Maps one recurring job as it runs today, built from your own meetings, notes, and email, then questions every step, designs how it should run, sorts each step into what a check can do, what AI drafts, and what stays yours, and picks one thing to build with a first move for this week. Hands off to `start` or `make-a-skill`. |
 | `verifier` | Checks work against your own standard, with every number beside the place it was read, and builds a checks skill for each recurring job. Proves each check by planting an error it must catch. By Luke Anderson. |
 | `teach` | Explains what the AI just did in plain English, with a chalkboard picture that shows inline in Claude chat, Cowork, and the Codex app. Runs the teacher agent on Sonnet. |
 | `learn-my-voice` | Reads emails you actually sent and saves a style profile of how you write into your brain. Run it once, then re-run when drafts stop sounding right. |
