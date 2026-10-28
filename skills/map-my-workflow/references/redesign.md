@@ -2,9 +2,9 @@
 
 Used in steps 4 to 6 of map-my-workflow.
 
-## Cow-path tests
+## Waste tests
 
-Michael Hammer, 1990: companies used computers "to mechanize old ways of doing business" and got little back. His advice: don't automate, obliterate. Every as-is step gets these tests. A step that fails one is a cow path.
+When factories went electric, most swapped the steam engine for one big motor and kept the old shafts and layout; little changed until they redesigned the floor around a motor on every machine (Paul A. David, The Dynamo and the Computer, 1990). Adding AI to an unchanged process repeats that mistake. Every as-is step gets these tests. A step that fails one is waste worth redesigning.
 
 | Tell | What it sounds like | Usual to-be move |
 |---|---|---|
@@ -16,7 +16,7 @@ Michael Hammer, 1990: companies used computers "to mechanize old ways of doing b
 | One at a time | "I open each one and deal with it." | One pass over the batch; they review the batch on one page. |
 | Nobody reads it | "I'm not sure who uses this section." | Cut the step. Confirm with the reader first. |
 
-The question for every step: if you were starting today, would this step exist?
+The question for every step, in the user's words: would you still do this step if you started from scratch?
 
 ## Outcome one level up
 

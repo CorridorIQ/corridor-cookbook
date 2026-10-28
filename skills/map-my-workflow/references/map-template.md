@@ -13,6 +13,8 @@ Every <frequency>, about <total time>
    "<their words>" (<source>)
 2. <action>                 <tool>        ~<time>
 3. ? <gap: what we could not find>
+↻ steps 2-3 repeat until <who> says done, about <n> rounds
+Stuck: <n> runs started and never finished (<oldest wait>)
 ```
 
 Unknown times: write `~?` and ask one question about the total, not one per step.
@@ -29,6 +31,7 @@ Worst steps: <one or two, and why>
 
 Should be: <n> steps
   1. <input> -> <action> -> <output>   [black and white | gray | human]
+  ↻ repeat <steps> until <who> says done   (about <n> rounds; total time counts every round)
 
 Build: <skill | workspace | scheduled task>, because <one sentence>
 Must tie out: <check 1>; <check 2>
