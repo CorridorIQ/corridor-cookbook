@@ -1,0 +1,5 @@
+# Left out of the plugin ZIP (scripts/build-zip.sh uses git archive).
+.github export-ignore
+scripts export-ignore
+.gitattributes export-ignore
+.gitignore export-ignore

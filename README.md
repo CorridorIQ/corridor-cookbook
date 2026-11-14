@@ -17,6 +17,17 @@ This cookbook is the "SOP" layer of that work. Each skill is a recipe: a repeata
 /plugin install corridor-cookbook
 ```
 
+### For a whole Claude organization (ZIP upload)
+
+Use this when the organization can't sync the marketplace from GitHub yet.
+
+1. Build the ZIP from a clean checkout: `scripts/build-zip.sh`. It writes `dist/corridor-cookbook-<version>.zip` and refuses to build when `plugin.json` and `marketplace.json` give different versions. Every push to `main` also builds it in CI (the `plugin-zip` workflow keeps it as a run artifact).
+2. Send the ZIP as it is. Don't unzip it: some browsers unzip downloads, and Claude takes only the ZIP.
+3. The organization owner uploads it in Claude's organization settings, under plugins, with "Upload plugin".
+4. On the plugin, change "Not available" to "Installed by default", so every member gets the skills without a step of their own.
+
+To ship an update, bump the version in all three places (`plugin.json`, and the plugin entry and `metadata` in `marketplace.json`), merge, build, and send the new ZIP.
+
 ## The chain
 
 Six skills that run in order, from a vague idea to a finished output that improves the next run. Start with `start` and follow where it leads, or call any one on its own.

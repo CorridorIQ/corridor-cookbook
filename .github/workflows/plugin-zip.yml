@@ -1,0 +1,27 @@
+name: plugin-zip
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the upload ZIP (checks manifest versions agree)
+        run: scripts/build-zip.sh
+      - name: Check the ZIP has the manifest at its root
+        run: |
+          zip=$(ls dist/*.zip)
+          unzip -l "$zip" | grep -q ' .claude-plugin/plugin.json$'
+          unzip -l "$zip" | grep -q ' skills/'
+          ! unzip -l "$zip" | grep -E ' (\.github|scripts)/'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: corridor-cookbook-zip
+          path: dist/*.zip
