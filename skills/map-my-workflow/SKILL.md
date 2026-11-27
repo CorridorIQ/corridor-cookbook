@@ -15,16 +15,16 @@ Talk to them in plain words. Three pairs of terms are worth teaching, so use the
 
 ## 1. Name the job
 
-If their message names a recurring job, use it. Otherwise ask one question: what do you do most weeks that eats the most time and follows the same shape? If a personal brain is connected, offer your best two guesses from it. In the same message, ask where the work happens (a spreadsheet, a tracker, a shared folder, a system) unless the evidence already makes it obvious; in Cowork, ask them to give you that folder. Narrow a category to one concrete run: "the Monday portfolio update", not "reporting". If the job repeats across clients or teams, anchor on the most recent full run and use the others as cross-checks. Done when the job has a name of five words or fewer and one anchor run with a date; frequency comes from the evidence.
+If their message names a recurring job, use it. Otherwise ask one question: what do you do most weeks that eats the most time and follows the same shape? If their Individual Brain is connected, offer your best two guesses from it. In the same message, ask where the work happens (a spreadsheet, a tracker, a shared folder, a system) unless the evidence already makes it obvious; in Cowork, ask them to give you that folder. Narrow a category to one concrete run: "the Monday portfolio update", not "reporting". If the job repeats across clients or teams, anchor on the most recent full run and use the others as cross-checks. Done when the job has a name of five words or fewer and one anchor run with a date; frequency comes from the evidence.
 
 ## 2. Gather the evidence
 
 Build a case file before asking anything else. Check in this order, because each source narrows the next, and stop at about eight useful sources or twelve tool calls:
 
 - **Where the work happens.** The spreadsheet, tracker, folder, or system from step 1, through a connector or the folder they gave you. It usually holds the best evidence: real inputs, real outputs, and real dates.
-- **Meetings.** `meeting_search` matches titles and descriptions only, so search by the counterpart, client, or team name, not the job's name. Read up to three summaries with `meeting_details`. Note dates, attendees, and the counterpart's email domain.
-- **Their brain.** If Corridor Context is connected and the host expects it, `cold_start_context` once for orientation; it holds rules, not evidence. Then `personal_search` with `path` set to `projects`, `notes`, or `decisions` for the counterpart and the job's key nouns. Search `transcripts` only when you need their exact words.
-- **Email and calendar.** Filter by the counterpart's domain and a window around the meeting dates. Find the email that starts the job and the one that ends it; they show the true trigger, inputs, and who else touches it.
+- **Meetings.** If Corridor Context is connected, use `meeting_search` to find Corridor Capture meetings by title, description, or attendee email. Read up to three summaries with `meeting_details` and `include_summary: true`. Set `include_transcript: true` only when you need their exact words. Note dates, attendees, and the counterpart's email domain.
+- **Their Individual Brain.** If Corridor Context is connected and the host expects it, `cold_start_context` once for orientation; it holds rules, not evidence. Then use `personal_search` to find the counterpart and the job's key nouns in their project pages, notes, and decisions.
+- **Email and calendar.** If available, filter by the counterpart's domain and a window around the meeting dates. Find the email that starts the job and the one that ends it; they show the true trigger, inputs, and who else touches it.
 - **Their work folder.** If they keep past deliverables, open the ones for the anchor run. File and commit times are the best evidence of how long prep takes. For a large pile, send parallel `researcher` agents if available, one slice each, told to quote what they rely on.
 
 Look across runs, not only the anchor. Count the runs that started and never finished, or stalled for days; they go on the map as their own line, because one clean example hides the stuck ones. Keep a pointer for every fact (meeting and date, email subject, file name). If nothing is connected, ask them to talk it through once by voice, start to finish, messy is fine. When prep files and the meeting record disagree, the meeting record is the as-is; the gap between plan and reality is a finding, so show it. Done when the trigger, the finished state, and each step's tool have a source, and no more than three things remain unknown.
@@ -61,7 +61,7 @@ Containers combine; a scheduled task often runs a skill. If no hand-off skill is
 
 ## 7. Hand back the map and the first move
 
-Write the one-pager from `references/map-template.md`, including the build prompt (`examples/morning-inbox.md` shows a finished one), and save it where they keep work: the folder they named, or `personal_write` to `notes/workflow-<job-slug>.md` in their brain.
+Write the one-pager from `references/map-template.md`, including the build prompt (`examples/morning-inbox.md` shows a finished one). Save it in the folder they named or use `personal_write` to save `notes/workflow-<job-slug>.md` in their connected Individual Brain. If neither is available, hand it back in chat.
 
 The first move is a prototype that tests one idea, not the whole to-be. Pick the riskiest to-be step, build only that, and run it on a past period whose right answer they already know. A small prototype that works makes the case faster than a plan does.
 

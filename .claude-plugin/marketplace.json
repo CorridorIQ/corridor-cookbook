@@ -11,7 +11,7 @@
     {
       "name": "corridor-cookbook",
       "source": "./",
-      "description": "One chain of knowledge-work skills for Claude: start, scaffold, plan, run-plan, learn, and improve, plus verifier and teach, so a non-technical person goes from a vague idea to a checked, finished output that improves the next run.",
+      "description": "Skills and agents for repeatable knowledge work in Claude Code and Cowork: set up a workspace, turn an idea into a plan, run it, and check the result.",
       "version": "0.5.0",
       "author": {
         "name": "Corridor Context"
