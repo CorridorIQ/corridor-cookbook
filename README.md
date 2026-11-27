@@ -2,20 +2,30 @@
 
 ![Documents flowing through a gate and coming out as organized streams](assets/cover.jpg)
 
-Skills & Agents to bring frontier intelligence into all areas of knowledge work. Provided and maintained by Corridor Context. 
+Corridor Cookbook is an open-source collection of skills and agents for repeatable knowledge work in Claude Code and Claude Cowork. Each skill is a recipe you invoke by name. Use the Cookbook to set up a workspace, turn a loose idea into a plan, and check the finished work. Workspaces it creates can also be opened in Codex and other AI tools; the plugin itself is for Claude.
 
-AI model capability is already strong, what's missing is getting them into the hands of people doing real work. The analyst who owns the monthly report, the asset manager chasing comps, anyone staring down five Excel files and a deadline. Corridor Context helps companies become AI-native.
-
-Our belief is as models keep getting better, your edge is the **context** you capture and how you put **agents to work**. 
-
-This cookbook is the "SOP" layer of that work. Each skill is a recipe: a repeatable process you invoke by name, distilled from deployment sessions with real teams. No code required. Everything here works in Claude Code and Claude Cowork, and the folders it builds also open in Codex and other AI tools. 
+The Cookbook is separate from the Corridor Context platform. If your team uses Corridor Context, [connect Claude to Corridor Context](https://www.corridorcontext.com/docs/connect-your-ai/claude/) to use your Individual Brain and Corridor Capture meetings in recipes that support them. Installing the Cookbook does not connect those sources.
 
 ## Install
 
+### Claude Code
+
+On Claude Code 2.1.275 or later, run this inside Claude Code:
+
+```
+/plugin install corridor-cookbook --marketplace CorridorIQ/corridor-cookbook
+```
+
+On older versions, add the marketplace before installing:
+
 ```
 /plugin marketplace add CorridorIQ/corridor-cookbook
-/plugin install corridor-cookbook
+/plugin install corridor-cookbook@corridor-context
 ```
+
+### Claude Cowork
+
+If your organization shares the Cookbook with you, look for it under **Customize > Plugins** in the Claude desktop app. The commands above are for Claude Code only.
 
 ## The chain
 
@@ -26,8 +36,8 @@ Six skills that run in order, from a vague idea to a finished output that improv
 | `start` | Takes your brain dump, plays it back until you agree, then reads what you pointed to (splitting big piles across helper agents) and asks only the decisions files can't answer: which source wins, what the headline word means, what needs your yes. Writes nothing; hands the paragraph to scaffold. |
 | `scaffold` | Builds the folder: AGENTS.md for the rules (plus a one-line CLAUDE.md that points Claude to it), NOW.md, README, sources, rules, and an inbox. Sets the first run on a past period whose answers you know, and offers a practices note and the verifier. |
 | `plan` | Turns the start answers into a one-page plan in `plans/`, plain English, six fields of front matter. Stops for your approval before anything runs. |
-| `run-plan` | Runs the approved plan. Independent steps go to Sonnet agents in parallel, harder ones to Opus; with no agents available, it does the steps itself. Ends by running learn. |
-| `learn` | Writes a rule only when it can name one that changes the next run, and the evidence for it. Promotes on a second sighting, and mirrors promoted rules to your brain. |
+| `run-plan` | Runs the approved plan. It delegates independent steps to Sonnet agents in parallel and keeps steps that need broader judgment in the main session. If agents aren't available, it runs the steps itself. Ends by running `learn`. |
+| `learn` | Records evidence-backed rules that change the next run. It keeps a local copy and mirrors promoted rules to your Individual Brain when connected. |
 | `improve` | Reads the learnings, groups them by the skill they touch, and writes one proposal per skill into an `improvements.md` inbox. Never edits a skill itself. |
 
 The work teaches the cookbook: `learn` writes the rule, `improve` proposes the skill edit, and `make-a-skill` turns a repeated job into its own skill.
@@ -42,12 +52,12 @@ The work teaches the cookbook: `learn` writes the rule, `improve` proposes the s
 | `map-my-workflow` | Maps one recurring job as it runs today, built from your own meetings, notes, and email, then questions every step, designs how it should run, sorts each step into what a check can do, what AI drafts, and what stays yours, and picks one thing to build with a first move for this week. Hands off to `start` or `make-a-skill`. |
 | `verifier` | Checks work against your own standard, with every number beside the place it was read, and builds a checks skill for each recurring job. Proves each check by planting an error it must catch. By Luke Anderson. |
 | `teach` | Explains what the AI just did in plain English, with a chalkboard picture that shows inline in Claude chat, Cowork, and the Codex app. Runs the teacher agent on Sonnet. |
-| `learn-my-voice` | Reads emails you actually sent and saves a style profile of how you write into your brain. Run it once, then re-run when drafts stop sounding right. |
+| `learn-my-voice` | Builds a style profile from emails you actually sent. It saves the approved profile to your Individual Brain when connected, or hands it back in chat. |
 | `write-in-my-voice` | Drafts and replies to email in that voice, checking every draft against the profile before showing it. Never sends without your go. |
 
 ## Agents
 
-Four agents ship with the plugin, all pinned to Sonnet so delegated work always lands on the right model:
+Four agents ship with the plugin, all configured to use Sonnet:
 
 - **researcher** reads files and sources and returns a tight synthesis. It never edits anything.
 - **designer** drafts and shapes a plan step's output in the real format it needs to land in.

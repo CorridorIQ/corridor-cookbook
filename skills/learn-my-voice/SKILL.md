@@ -1,11 +1,11 @@
 ---
 name: learn-my-voice
-description: Study the user's own sent emails and save a style profile of how they write into their brain. Use when the user says "learn my voice", "learn how I write", "study my writing style", when a draft does not sound like them, or when write-in-my-voice finds no style file.
+description: Study the user's own sent emails and build a style profile of how they write. Use when the user says "learn my voice", "learn how I write", "study my writing style", when a draft does not sound like them, or when write-in-my-voice finds no style file.
 ---
 
 # learn-my-voice
 
-Run this once, then again whenever drafts stop sounding right. It writes one file to the user's brain, `notes/my-email-voice.md`, which `write-in-my-voice` reads before every draft.
+Run this once, then again whenever drafts stop sounding right. With a connected Individual Brain, save the approved profile to `notes/my-email-voice.md` so `write-in-my-voice` can read it before drafting.
 
 Every rule in that file comes from a line the user actually wrote. You are describing the voice they already have, not choosing one for them.
 
@@ -17,8 +17,8 @@ Every rule in that file comes from a line the user actually wrote. You are descr
 
 4. **Read it back.** Show the profile as one line per rule with its quote. Ask which rules are wrong, and what they do on purpose that the samples missed. Fix their corrections before saving. This is what stops a bad inference from being baked in for months.
 
-5. **Save it to the brain.** Call `personal_write` on `notes/my-email-voice.md`: YAML frontmatter, the rules under the checklist headings, the avoid-list, the sample size and build date, and a `## Related` section linking their identity and key people files. On a re-run, read the existing file first and use `personal_update` so earlier corrections survive.
+5. **Save or hand back the profile.** With a connected Individual Brain, call `personal_write` on `notes/my-email-voice.md`: YAML frontmatter, the rules under the checklist headings, the avoid-list, the sample size and build date, and a `## Related` section linking their identity and key people files. On a re-run, read the existing file first and use `personal_update` so earlier corrections survive. Without the connector, return the approved profile in chat and say it wasn't saved.
 
-6. **Point them at `write-in-my-voice`** for drafting from here on, and tell them to re-run this skill after any stretch where drafts felt off.
+6. **If the profile was saved, point them at `write-in-my-voice`** for drafting. Tell them to re-run this skill after any stretch where drafts felt off.
 
-Done when the file is in their brain, every rule in it is backed by a line they wrote, and they have confirmed the read-back.
+Done when they've confirmed the read-back, every rule is backed by a line they wrote, and you've saved or returned the profile.
